@@ -1,4 +1,39 @@
+import { useState } from 'react';
+import HouseGreybox from './game/HouseGreybox';
+
 export default function App() {
+  const [view, setView] = useState<'title' | 'house'>('title');
+
+  if (view === 'house') {
+    return (
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{
+            padding: '0.6rem 1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            borderBottom: '1px solid #333',
+          }}
+        >
+          <strong style={{ letterSpacing: '0.15em' }}>THE HOUSE</strong>
+          <span style={{ opacity: 0.65, fontSize: '0.85rem' }}>
+            Greybox v1 — exploded view. Drag to orbit, scroll to zoom.
+          </span>
+          <button
+            onClick={() => setView('title')}
+            style={{ marginLeft: 'auto', cursor: 'pointer' }}
+          >
+            Back to title
+          </button>
+        </div>
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <HouseGreybox />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -22,9 +57,18 @@ export default function App() {
         Every solution in this house would work in a real house.
         That is the problem. For him.
       </div>
-      <div style={{ marginTop: '2rem', opacity: 0.5, fontSize: '0.85rem' }}>
-        Scaffolding build — house greybox lands next.
-      </div>
+      <button
+        onClick={() => setView('house')}
+        style={{
+          marginTop: '2rem',
+          padding: '0.6rem 1.4rem',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}
+      >
+        View the house
+      </button>
     </div>
   );
 }
