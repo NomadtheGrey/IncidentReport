@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  height: 100%;
+  background: #0a0a0c;
+  color: #e8e4da;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+canvas { display: block; }
