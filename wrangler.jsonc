@@ -1,0 +1,17 @@
+{
+  // INCIDENT REPORT — Cloudflare Worker serving static assets only.
+  // No server code: the game is a Vite SPA built into ./dist.
+  //
+  // WIP NO-BUILD RULE: WIP pushes do not build; only merges to
+  // main build (production branch = main, preview builds OFF on
+  // the dashboard). This file must reach main BEFORE the repo is
+  // connected in the Cloudflare dashboard.
+  //
+  // Dashboard Builds settings (Adam's dashboard side, not this
+  // file): build `npm run build`, deploy `npx wrangler deploy`.
+  "name": "incidentreport",
+  "compatibility_date": "2026-11-09",
+  "assets": {
+    "directory": "./dist"
+  }
+}
