@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import HouseGreybox from './game/HouseGreybox';
+import FirstPersonHouse from './game/FirstPersonHouse';
+
+type View = 'title' | 'house' | 'walk';
 
 export default function App() {
-  const [view, setView] = useState<'title' | 'house'>('title');
+  const [view, setView] = useState<View>('title');
 
-  if (view === 'house') {
+  if (view === 'house' || view === 'walk') {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div
@@ -14,21 +17,26 @@ export default function App() {
             alignItems: 'center',
             gap: '1rem',
             borderBottom: '1px solid #333',
+            flexWrap: 'wrap',
           }}
         >
-          <strong style={{ letterSpacing: '0.15em' }}>THE HOUSE</strong>
+          <strong style={{ letterSpacing: '0.15em' }}>
+            {view === 'walk' ? 'WALK THE HOUSE' : 'THE HOUSE'}
+          </strong>
           <span style={{ opacity: 0.65, fontSize: '0.85rem' }}>
-            Greybox v1 — exploded view. Drag to orbit, scroll to zoom.
+            {view === 'walk'
+              ? 'First person. You start in the primary bedroom, upstairs.'
+              : 'Greybox — exploded view. Drag to orbit, scroll to zoom.'}
           </span>
           <button
             onClick={() => setView('title')}
-            style={{ marginLeft: 'auto', cursor: 'pointer' }}
+            style={{ marginLeft: 'auto', cursor: 'pointer', minHeight: 40, padding: '0 1rem' }}
           >
             Back to title
           </button>
         </div>
         <div style={{ flex: 1, minHeight: 0 }}>
-          <HouseGreybox />
+          {view === 'walk' ? <FirstPersonHouse /> : <HouseGreybox />}
         </div>
       </div>
     );
@@ -57,18 +65,33 @@ export default function App() {
         Every solution in this house would work in a real house.
         That is the problem. For him.
       </div>
-      <button
-        onClick={() => setView('house')}
-        style={{
-          marginTop: '2rem',
-          padding: '0.6rem 1.4rem',
-          fontSize: '1rem',
-          cursor: 'pointer',
-          fontFamily: 'inherit',
-        }}
-      >
-        View the house
-      </button>
+      <div style={{ display: 'flex', gap: '0.8rem', marginTop: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button
+          onClick={() => setView('walk')}
+          style={{
+            padding: '0.7rem 1.5rem',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            minHeight: 48,
+          }}
+        >
+          Walk the house
+        </button>
+        <button
+          onClick={() => setView('house')}
+          style={{
+            padding: '0.7rem 1.5rem',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            minHeight: 48,
+            opacity: 0.85,
+          }}
+        >
+          Exploded view
+        </button>
+      </div>
     </div>
   );
 }

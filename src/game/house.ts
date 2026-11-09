@@ -181,3 +181,50 @@ export const DOORS: DoorDef[] = [
 
 /** The shortest competent run, for pacing checks: bed -> stairs -> skillet. */
 export const FAST_ROUTE = ['primary-bedroom', 'landing', 'hall', 'kitchen'] as const;
+
+// Stairwells, both in the hall column (x -0.5..2), stacked on the same
+// wall so sound carries vertically. Each flight is 3.6m long, 1.3m wide.
+// UP: main floor at the front end (z 4.2) rising to upstairs at z 0.6.
+// DOWN: main floor at z -0.6 descending to the basement at z -4.2.
+export const STAIR_UP = { x: [0.1, 1.4] as [number, number], z: [0.5, 3.9] as [number, number] };
+export const STAIR_DOWN = { x: [0.1, 1.4] as [number, number], z: [-3.9, -0.5] as [number, number] };
+
+/** Ground height (the floor surface y) at a plan position, given the
+ *  walker's current ground height to disambiguate stacked floors. */
+export function groundHeightAt(x: number, z: number, current: number): number {
+  if (x >= STAIR_UP.x[0] && x <= STAIR_UP.x[1] && z >= STAIR_UP.z[0] && z <= STAIR_UP.z[1]) {
+    const t = (STAIR_UP.z[1] - z) / (STAIR_UP.z[1] - STAIR_UP.z[0]);
+    return THREE_FLOORS[2] * Math.min(1, Math.max(0, t));
+  }
+  if (x >= STAIR_DOWN.x[0] && x <= STAIR_DOWN.x[1] && z >= STAIR_DOWN.z[0] && z <= STAIR_DOWN.z[1]) {
+    const t = (STAIR_DOWN.z[1] - z) / (STAIR_DOWN.z[1] - STAIR_DOWN.z[0]);
+    return THREE_FLOORS[0] * Math.min(1, Math.max(0, t));
+  }
+  const inHouse = x >= -6 && x <= 6 && z >= -4.5 && z <= 4.5;
+  const inGarage = x > 6 && x <= 11.5 && z >= -4.5 && z <= 2;
+  if (!inHouse && !inGarage) return 0; // the yard / street
+  if (inGarage) return 0;
+  // Inside the footprint every level is a candidate; take the one
+  // nearest where the walker already is (stairs handle transitions).
+  let best: number = THREE_FLOORS[1];
+  for (const y of THREE_FLOORS) if (Math.abs(y - current) < Math.abs(best - current)) best = y;
+  return best;
+}
+
+const THREE_FLOORS = [-3, 0, 3] as const;
+
+/** Which room the walker is standing in (nearest floor wins). */
+export function roomAt(x: number, z: number, groundY: number): RoomDef | null {
+  let found: RoomDef | null = null;
+  let bestDist = Infinity;
+  for (const room of ROOMS) {
+    if (x >= room.x[0] && x <= room.x[1] && z >= room.z[0] && z <= room.z[1]) {
+      const dist = Math.abs(FLOOR_Y[room.floor] - groundY);
+      if (dist < bestDist) {
+        bestDist = dist;
+        found = room;
+      }
+    }
+  }
+  return found;
+}
