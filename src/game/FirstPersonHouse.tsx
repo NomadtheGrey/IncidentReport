@@ -35,7 +35,7 @@ const WALL_H = 2.7;
 const DOOR_W = 0.92;
 const DOOR_H = 2.1;
 const EYE = 1.62;
-const RADIUS = 0.25;
+const RADIUS = 0.22;
 
 const FLOOR_TINT: Record<FloorId, number> = {
   basement: 0x55555f,
@@ -214,7 +214,8 @@ function buildHouse(scene: THREE.Scene): Collider[] {
     yBottom: number,
     yTop: number,
     stepAt: (z: number) => number,
-    entryGap: { side: 'west'; z: [number, number] },
+    guards: { west: Array<[number, number]>; east: Array<[number, number]> },
+    railings: { west: Array<[number, number]>; east: Array<[number, number]> },
   ) => {
     const N = 15;
     const len = flight.z[1] - flight.z[0];
@@ -229,29 +230,37 @@ function buildHouse(scene: THREE.Scene): Collider[] {
       if (h <= 0) continue;
       addBox(w, h, zB - zA + 0.03, cx, bottom + h / 2, (zA + zB) / 2, stepMat, false);
     }
-    // Side enclosures in 3 stepped segments; the entry side skips the
-    // segment the walker enters through (open bottom / top of flight).
-    const sides: Array<{ x: number; side: 'west' | 'east' }> = [
-      { x: flight.x[0] - 0.06, side: 'west' },
-      { x: flight.x[1] + 0.06, side: 'east' },
+    // Side enclosures sit ON the flight's edges (they eat flight width,
+    // not slot width). Guard segments are explicit per side: a missing
+    // segment is an entry — head-on at the flight's ends, plus a side
+    // entry at the WEST of each flight's high end and low end, where
+    // the step surface is within a short step of the floor beside it.
+    const sides: Array<{ x: number; segs: Array<[number, number]> }> = [
+      { x: flight.x[0], segs: guards.west },
+      { x: flight.x[1], segs: guards.east },
     ];
-    for (const { x, side } of sides) {
-      for (let s = 0; s < 3; s++) {
-        const zA = flight.z[0] + (s * len) / 3;
-        const zB = flight.z[0] + ((s + 1) * len) / 3;
-        const segMid = (zA + zB) / 2;
-        if (
-          side === entryGap.side &&
-          segMid >= entryGap.z[0] &&
-          segMid <= entryGap.z[1]
-        ) {
-          continue;
-        }
+    for (const { x, segs } of sides) {
+      for (const [zA, zB] of segs) {
         const top = Math.min(Math.max(stepAt(zA), stepAt(zB)) + 0.95, Math.max(yBottom, yTop) + 0.95);
         const bottom = Math.min(yBottom, yTop);
         const h = top - bottom;
         if (h <= 0) continue;
-        addBox(0.12, h, zB - zA, x, bottom + h / 2, segMid, wallMat, true);
+        addBox(0.12, h, zB - zA, x, bottom + h / 2, (zA + zB) / 2, wallMat, true);
+      }
+    }
+    // Upper-floor railings: the stepped guards top out below the upper
+    // floor along most of the flight, so without these a walker on the
+    // upper floor crosses straight over the open stairwell at floor
+    // height. Railings guard the hole's edges at the upper floor,
+    // with gaps only where an entry is intended.
+    const upperY = Math.max(yBottom, yTop);
+    const railSides: Array<{ x: number; segs: Array<[number, number]> }> = [
+      { x: flight.x[0], segs: railings.west },
+      { x: flight.x[1], segs: railings.east },
+    ];
+    for (const { x, segs } of railSides) {
+      for (const [zA, zB] of segs) {
+        addBox(0.12, 0.95, zB - zA, x, upperY + 0.475, (zA + zB) / 2, wallMat, true);
       }
     }
   };
@@ -261,14 +270,51 @@ function buildHouse(scene: THREE.Scene): Collider[] {
     0,
     3,
     (z) => 3 * Math.min(1, Math.max(0, (STAIR_UP.z[1] - z) / (STAIR_UP.z[1] - STAIR_UP.z[0]))),
-    { side: 'west', z: [2.9, 3.9] },
+    {
+      // West open at the top (z 0.5..1.3, side entry off the landing,
+      // step surface 3.0..2.56) and at the bottom (z 2.9..3.9, entry
+      // off the hall). East closed the whole way.
+      west: [
+        [1.3, 2.2],
+        [2.2, 2.9],
+      ],
+      east: [
+        [0.5, 1.7],
+        [1.7, 2.9],
+        [2.9, 3.9],
+      ],
+    },
+    {
+      // Landing-level railings: west open only at the top side entry
+      // (z 0.5..1.3); east railed the whole length of the hole.
+      west: [[1.3, 3.9]],
+      east: [[0.5, 3.9]],
+    },
   );
   buildFlight(
     STAIR_DOWN,
     0,
     -3,
     (z) => -3 * Math.min(1, Math.max(0, (STAIR_DOWN.z[1] - z) / (STAIR_DOWN.z[1] - STAIR_DOWN.z[0]))),
-    { side: 'west', z: [-1.5, -0.5] },
+    {
+      // West open at the top (z -1.5..-0.5, side entry off the hall,
+      // step surface 0..-0.88). East closed the whole way.
+      west: [
+        [-3.9, -2.7],
+        [-2.7, -1.5],
+      ],
+      east: [
+        [-3.9, -2.77],
+        [-2.77, -1.63],
+        [-1.63, -0.5],
+      ],
+    },
+    {
+      // Main-level railings: west open only at the top side entry
+      // (z -1.5..-0.5); east railed the whole length of the hole.
+      west: [[-3.9, -1.5]],
+      east: [[-3.9, -0.5]],
+    },
   );
 
   // ---- The world outside: one big dark ground plane at street level ----
