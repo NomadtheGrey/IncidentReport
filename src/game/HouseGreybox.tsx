@@ -17,7 +17,7 @@ const FLOOR_COLORS: Record<FloorId, number> = {
 // Extra separation between floors in the exploded view.
 const EXPLODE = 2.2;
 
-function makeLabel(text: string): THREE.Sprite {
+function makeLabel(text: string, sub?: string): THREE.Sprite {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 128;
@@ -25,10 +25,18 @@ function makeLabel(text: string): THREE.Sprite {
   ctx.fillStyle = 'rgba(10,10,12,0.72)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#e8e4da';
-  ctx.font = 'bold 44px Georgia, serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  if (sub) {
+    ctx.font = 'bold 38px Georgia, serif';
+    ctx.fillText(text, canvas.width / 2, 42);
+    ctx.fillStyle = '#ffc46b';
+    ctx.font = '30px Georgia, serif';
+    ctx.fillText(sub, canvas.width / 2, 90);
+  } else {
+    ctx.font = 'bold 44px Georgia, serif';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+  }
   const texture = new THREE.CanvasTexture(canvas);
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: texture, transparent: true }),
@@ -36,6 +44,8 @@ function makeLabel(text: string): THREE.Sprite {
   sprite.scale.set(3.4, 0.85, 1);
   return sprite;
 }
+
+const fmtM = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 export default function HouseGreybox() {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -111,10 +121,24 @@ export default function HouseGreybox() {
       mkWall(0.1, d, room.x[0], cz);
       mkWall(0.1, d, room.x[1], cz);
 
-      const label = makeLabel(room.name);
+      const label = makeLabel(room.name, `${fmtM(w)} × ${fmtM(d)} m`);
       label.position.set(cx, y + 1.7, cz);
       scene.add(label);
     }
+
+    // ---- Scale: a 1m grid under the whole stack (20m across, centred
+    // on the house + garage), so wall lengths can be counted off, and
+    // a FRONT marker on the street side (+z).
+    const grid = new THREE.GridHelper(20, 20, 0x556677, 0x2b3038);
+    grid.position.set(2.75, explodeY('basement') - 0.4, 0);
+    const gridMat = grid.material as THREE.Material;
+    gridMat.transparent = true;
+    gridMat.opacity = 0.55;
+    scene.add(grid);
+    const front = makeLabel('FRONT — street');
+    front.scale.set(2.6, 0.65, 1);
+    front.position.set(0.75, explodeY('main') + 0.4, 6.4);
+    scene.add(front);
 
     // ---- Doorway indicators: an amber panel standing in each opening,
     // so the doors read at a glance against the plain walls. (The
@@ -157,7 +181,7 @@ export default function HouseGreybox() {
     const drawFlight = (
       flight: typeof STAIR_UP,
       heightAt: (z: number) => number,
-      opts: { solidBaseY: number | null; topOffset: number; labelText: string; labelY: number },
+      opts: { solidBaseY: number | null; topOffset: number; labelText: string; labelSub: string; labelY: number },
     ) => {
       const N = 12;
       const len = flight.z[1] - flight.z[0];
@@ -177,7 +201,7 @@ export default function HouseGreybox() {
         step.position.set(cx, top - h / 2, (zA + zB) / 2);
         scene.add(step);
       }
-      const label = makeLabel(opts.labelText);
+      const label = makeLabel(opts.labelText, opts.labelSub);
       label.position.set(cx, opts.labelY, (flight.z[0] + flight.z[1]) / 2);
       scene.add(label);
     };
@@ -189,6 +213,7 @@ export default function HouseGreybox() {
         solidBaseY: explodeY('main') + 0.08,
         topOffset: explodeY('main') + 0.08,
         labelText: 'STAIRS UP',
+        labelSub: '1.1 × 3.4 m',
         labelY: explodeY('main') + 4.1,
       },
     );
@@ -201,6 +226,7 @@ export default function HouseGreybox() {
         solidBaseY: null,
         topOffset: explodeY('main') - 3.08,
         labelText: 'STAIRS DOWN',
+        labelSub: '1.1 × 3.4 m',
         labelY: explodeY('main') - 1.4,
       },
     );
@@ -258,6 +284,8 @@ export default function HouseGreybox() {
         <br />
         <span style={{ color: '#ffb020' }}>Amber panel</span> = doorway ·{' '}
         <span style={{ color: '#ff7722' }}>Orange steps</span> = stairs
+        <br />
+        Grid squares = 1 m · House footprint 12 × 9 m · Floors 3 m apart
       </div>
     </div>
   );
