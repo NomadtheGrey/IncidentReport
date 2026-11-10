@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { DOORS, FLOOR_Y, ROOMS, type FloorId } from './house';
+import { DOORS, FLOOR_Y, ROOMS, STAIR_DOWN, STAIR_UP, type FloorId } from './house';
 
 // Greybox v1: floors drawn exploded apart (extra vertical gap) so the
 // whole stack reads at once. Orbit to inspect; walk mode comes later.
@@ -78,12 +78,16 @@ export default function HouseGreybox() {
       roughness: 0.9,
     });
 
+    const explodeY = (floor: FloorId) =>
+      FLOOR_Y[floor] +
+      Math.sign(FLOOR_Y[floor]) * EXPLODE * (floor === 'main' || floor === 'garage' ? 0 : 1);
+
     for (const room of ROOMS) {
       const w = room.x[1] - room.x[0];
       const d = room.z[1] - room.z[0];
       const cx = (room.x[0] + room.x[1]) / 2;
       const cz = (room.z[0] + room.z[1]) / 2;
-      const y = FLOOR_Y[room.floor] + Math.sign(FLOOR_Y[room.floor]) * EXPLODE * (room.floor === 'main' || room.floor === 'garage' ? 0 : 1);
+      const y = explodeY(room.floor);
 
       const slab = new THREE.Mesh(
         new THREE.BoxGeometry(w, 0.15, d),
@@ -111,6 +115,95 @@ export default function HouseGreybox() {
       label.position.set(cx, y + 1.7, cz);
       scene.add(label);
     }
+
+    // ---- Doorway indicators: an amber panel standing in each opening,
+    // so the doors read at a glance against the plain walls. (The
+    // 'stairs-up' pseudo-door is skipped — the stairs get their own
+    // indicator below.)
+    const roomById = new Map(ROOMS.map((r) => [r.id, r]));
+    const doorMat = new THREE.MeshStandardMaterial({
+      color: 0xffb020,
+      emissive: 0xcc7a00,
+      emissiveIntensity: 0.45,
+      roughness: 0.6,
+    });
+    for (const door of DOORS) {
+      if (door.id === 'stairs-up') continue;
+      const room = roomById.get(door.between[0]) ?? roomById.get(door.between[1]);
+      if (!room) continue;
+      const y = explodeY(room.floor);
+      const onXEdge =
+        Math.abs(door.at.x - room.x[0]) < 0.01 || Math.abs(door.at.x - room.x[1]) < 0.01;
+      const panel = new THREE.Mesh(
+        onXEdge
+          ? new THREE.BoxGeometry(0.22, 1.15, 1.0)
+          : new THREE.BoxGeometry(1.0, 1.15, 0.22),
+        doorMat,
+      );
+      panel.position.set(door.at.x, y + 0.08 + 0.575, door.at.z);
+      scene.add(panel);
+    }
+
+    // ---- Stair indicators: solid orange steps for both flights. In
+    // the exploded view each flight sits on its LOWER floor and rises
+    // toward the floor it serves (the explode gap means it stops
+    // short — that's the diagram doing its job).
+    const stairMat = new THREE.MeshStandardMaterial({
+      color: 0xff7722,
+      emissive: 0x992f00,
+      emissiveIntensity: 0.35,
+      roughness: 0.7,
+    });
+    const drawFlight = (
+      flight: typeof STAIR_UP,
+      heightAt: (z: number) => number,
+      opts: { solidBaseY: number | null; topOffset: number; labelText: string; labelY: number },
+    ) => {
+      const N = 12;
+      const len = flight.z[1] - flight.z[0];
+      const w = flight.x[1] - flight.x[0];
+      const cx = (flight.x[0] + flight.x[1]) / 2;
+      for (let i = 0; i < N; i++) {
+        const zA = flight.z[0] + (i * len) / N;
+        const zB = flight.z[0] + ((i + 1) * len) / N;
+        const top = opts.topOffset + Math.max(heightAt(zA), heightAt(zB));
+        // Solid from a base floor, or a floating tread slab when the
+        // flight hangs from the floor above (the down flight — drawn
+        // attached to the main floor, because standing it on the
+        // exploded basement hides it behind the main slab).
+        const h = opts.solidBaseY !== null ? top - opts.solidBaseY : 0.28;
+        if (h <= 0.02) continue;
+        const step = new THREE.Mesh(new THREE.BoxGeometry(w, h, zB - zA + 0.02), stairMat);
+        step.position.set(cx, top - h / 2, (zA + zB) / 2);
+        scene.add(step);
+      }
+      const label = makeLabel(opts.labelText);
+      label.position.set(cx, opts.labelY, (flight.z[0] + flight.z[1]) / 2);
+      scene.add(label);
+    };
+    // Up flight: solid, stands on the main floor, rises toward z 0.5.
+    drawFlight(
+      STAIR_UP,
+      (z) => 3 * Math.min(1, Math.max(0, (STAIR_UP.z[1] - z) / (STAIR_UP.z[1] - STAIR_UP.z[0]))),
+      {
+        solidBaseY: explodeY('main') + 0.08,
+        topOffset: explodeY('main') + 0.08,
+        labelText: 'STAIRS UP',
+        labelY: explodeY('main') + 4.1,
+      },
+    );
+    // Down flight: tread slabs hanging from the main floor, descending
+    // toward z -3.9 (the basement end).
+    drawFlight(
+      STAIR_DOWN,
+      (z) => 3 * Math.min(1, Math.max(0, (z - STAIR_DOWN.z[0]) / (STAIR_DOWN.z[1] - STAIR_DOWN.z[0]))),
+      {
+        solidBaseY: null,
+        topOffset: explodeY('main') - 3.08,
+        labelText: 'STAIRS DOWN',
+        labelY: explodeY('main') - 1.4,
+      },
+    );
 
     let raf = 0;
     const tick = () => {
@@ -162,6 +255,9 @@ export default function HouseGreybox() {
         }}
       >
         {ROOMS.length} rooms · {DOORS.length} doors · 4 levels
+        <br />
+        <span style={{ color: '#ffb020' }}>Amber panel</span> = doorway ·{' '}
+        <span style={{ color: '#ff7722' }}>Orange steps</span> = stairs
       </div>
     </div>
   );
