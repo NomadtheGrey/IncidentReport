@@ -183,22 +183,31 @@ export const DOORS: DoorDef[] = [
 export const FAST_ROUTE = ['primary-bedroom', 'landing', 'hall', 'kitchen'] as const;
 
 // Stairwells, both in the hall column (x -0.5..2), stacked on the same
-// wall so sound carries vertically. Each flight is 3.6m long, 1.3m wide.
-// UP: main floor at the front end (z 4.2) rising to upstairs at z 0.6.
-// DOWN: main floor at z -0.6 descending to the basement at z -4.2.
-export const STAIR_UP = { x: [0.1, 1.4] as [number, number], z: [0.5, 3.9] as [number, number] };
-export const STAIR_DOWN = { x: [0.1, 1.4] as [number, number], z: [-3.9, -0.5] as [number, number] };
+// wall so sound carries vertically. Each flight is 3.4m long, 1.1m wide,
+// centred so BOTH side slots in the hall stay ~0.58m clear — wider than
+// the walker. (v1 had the flights at 1.3m wide: the slots pinched to
+// 0.42m and Adam wedged on the stairs in his first phone test.)
+// UP: main floor at the front end (z 3.9) rising to upstairs at z 0.5.
+// DOWN: main floor at z -0.5 descending to the basement at z -3.9.
+export const STAIR_UP = { x: [0.2, 1.3] as [number, number], z: [0.5, 3.9] as [number, number] };
+export const STAIR_DOWN = { x: [0.2, 1.3] as [number, number], z: [-3.9, -0.5] as [number, number] };
 
 /** Ground height (the floor surface y) at a plan position, given the
  *  walker's current ground height to disambiguate stacked floors. */
 export function groundHeightAt(x: number, z: number, current: number): number {
+  // The ramp only claims the walker when it is plausibly THEIR floor:
+  // within 1.2m of their current height. Approaching a flight's
+  // footprint from the wrong level (a side slot, the floor below)
+  // must not snap them onto the ramp.
   if (x >= STAIR_UP.x[0] && x <= STAIR_UP.x[1] && z >= STAIR_UP.z[0] && z <= STAIR_UP.z[1]) {
     const t = (STAIR_UP.z[1] - z) / (STAIR_UP.z[1] - STAIR_UP.z[0]);
-    return THREE_FLOORS[2] * Math.min(1, Math.max(0, t));
+    const ramp = THREE_FLOORS[2] * Math.min(1, Math.max(0, t));
+    if (Math.abs(ramp - current) <= 1.2) return ramp;
   }
   if (x >= STAIR_DOWN.x[0] && x <= STAIR_DOWN.x[1] && z >= STAIR_DOWN.z[0] && z <= STAIR_DOWN.z[1]) {
     const t = (STAIR_DOWN.z[1] - z) / (STAIR_DOWN.z[1] - STAIR_DOWN.z[0]);
-    return THREE_FLOORS[0] * Math.min(1, Math.max(0, t));
+    const ramp = THREE_FLOORS[0] * Math.min(1, Math.max(0, t));
+    if (Math.abs(ramp - current) <= 1.2) return ramp;
   }
   const inHouse = x >= -6 && x <= 6 && z >= -4.5 && z <= 4.5;
   const inGarage = x > 6 && x <= 11.5 && z >= -4.5 && z <= 2;
