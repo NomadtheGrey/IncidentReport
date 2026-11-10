@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { DOORS, FLOOR_Y, ROOMS, STAIR_DOWN, STAIR_UP, type FloorId } from './house';
+import { DOORS, FLOOR_Y, ROOMS, SHAFT_DOWN, SHAFT_UP, shaftHeightAt, type FloorId, type ShaftDef } from './house';
 
 // Greybox v1: floors drawn exploded apart (extra vertical gap) so the
 // whole stack reads at once. Orbit to inspect; walk mode comes later.
@@ -99,6 +99,13 @@ export default function HouseGreybox() {
       const cz = (room.z[0] + room.z[1]) / 2;
       const y = explodeY(room.floor);
 
+      if (room.id.includes('closet')) {
+        const cl = makeLabel(room.name, `${fmtM(w)} \u00d7 ${fmtM(d)} m`);
+        cl.position.set(cx, y + 1.7, cz);
+        scene.add(cl);
+        continue;
+      }
+
       const slab = new THREE.Mesh(
         new THREE.BoxGeometry(w, 0.15, d),
         new THREE.MeshStandardMaterial({
@@ -152,7 +159,7 @@ export default function HouseGreybox() {
       roughness: 0.6,
     });
     for (const door of DOORS) {
-      if (door.id === 'stairs-up') continue;
+      if (door.id === 'stairs-up' || door.id === 'stairs-down') continue;
       const room = roomById.get(door.between[0]) ?? roomById.get(door.between[1]);
       if (!room) continue;
       const y = explodeY(room.floor);
@@ -168,68 +175,54 @@ export default function HouseGreybox() {
       scene.add(panel);
     }
 
-    // ---- Stair indicators: solid orange steps for both flights. In
-    // the exploded view each flight sits on its LOWER floor and rises
-    // toward the floor it serves (the explode gap means it stops
-    // short — that's the diagram doing its job).
+    // ---- Stair indicators: orange switchback steps for both shafts.
+    // Each shaft stands on its own base floor in the exploded stack
+    // and rises toward the floor it serves (the explode gap means it
+    // stops short \u2014 that's the diagram doing its job).
     const stairMat = new THREE.MeshStandardMaterial({
       color: 0xff7722,
       emissive: 0x992f00,
       emissiveIntensity: 0.35,
       roughness: 0.7,
     });
-    const drawFlight = (
-      flight: typeof STAIR_UP,
-      heightAt: (z: number) => number,
-      opts: { solidBaseY: number | null; topOffset: number; labelText: string; labelSub: string; labelY: number },
-    ) => {
-      const N = 12;
-      const len = flight.z[1] - flight.z[0];
-      const w = flight.x[1] - flight.x[0];
-      const cx = (flight.x[0] + flight.x[1]) / 2;
-      for (let i = 0; i < N; i++) {
-        const zA = flight.z[0] + (i * len) / N;
-        const zB = flight.z[0] + ((i + 1) * len) / N;
-        const top = opts.topOffset + Math.max(heightAt(zA), heightAt(zB));
-        // Solid from a base floor, or a floating tread slab when the
-        // flight hangs from the floor above (the down flight — drawn
-        // attached to the main floor, because standing it on the
-        // exploded basement hides it behind the main slab).
-        const h = opts.solidBaseY !== null ? top - opts.solidBaseY : 0.28;
-        if (h <= 0.02) continue;
-        const step = new THREE.Mesh(new THREE.BoxGeometry(w, h, zB - zA + 0.02), stairMat);
-        step.position.set(cx, top - h / 2, (zA + zB) / 2);
-        scene.add(step);
+    const drawShaft = (shaft: ShaftDef, baseFloor: FloorId, labelText: string) => {
+      const baseY = explodeY(baseFloor) + 0.08;
+      const midX = (shaft.x[0] + shaft.x[1]) / 2;
+      const N = 8;
+      const runLen = shaft.runZ[1] - shaft.runZ[0];
+      for (const runX of [[shaft.x[0], midX], [midX, shaft.x[1]]] as const) {
+        const cx = (runX[0] + runX[1]) / 2;
+        for (let i = 0; i < N; i++) {
+          const zA = shaft.runZ[0] + (i * runLen) / N;
+          const zB = shaft.runZ[0] + ((i + 1) * runLen) / N;
+          const surf = Math.max(
+            shaftHeightAt(shaft, cx, zA) ?? shaft.base,
+            shaftHeightAt(shaft, cx, zB) ?? shaft.base,
+          );
+          const top = baseY + (surf - shaft.base);
+          const h = top - baseY + 0.05;
+          if (h <= 0.02) continue;
+          const step = new THREE.Mesh(
+            new THREE.BoxGeometry(runX[1] - runX[0] - 0.04, h, zB - zA + 0.02),
+            stairMat,
+          );
+          step.position.set(cx, top - h / 2 + 0.025, (zA + zB) / 2);
+          scene.add(step);
+        }
       }
-      const label = makeLabel(opts.labelText, opts.labelSub);
-      label.position.set(cx, opts.labelY, (flight.z[0] + flight.z[1]) / 2);
+      // The half-landing block.
+      const land = new THREE.Mesh(
+        new THREE.BoxGeometry(shaft.x[1] - shaft.x[0], 1.55, shaft.landingZ[1] - shaft.landingZ[0]),
+        stairMat,
+      );
+      land.position.set(midX, baseY + 1.55 / 2, (shaft.landingZ[0] + shaft.landingZ[1]) / 2);
+      scene.add(land);
+      const label = makeLabel(labelText, 'switchback \u00b7 box 2 \u00d7 3 m');
+      label.position.set(midX, baseY + 4.0, (shaft.z[0] + shaft.z[1]) / 2);
       scene.add(label);
     };
-    // Up flight: solid, stands on the main floor, rises toward z 0.5.
-    drawFlight(
-      STAIR_UP,
-      (z) => 3 * Math.min(1, Math.max(0, (STAIR_UP.z[1] - z) / (STAIR_UP.z[1] - STAIR_UP.z[0]))),
-      {
-        solidBaseY: explodeY('main') + 0.08,
-        topOffset: explodeY('main') + 0.08,
-        labelText: 'STAIRS UP',
-        labelSub: '1.1 × 3.4 m',
-        labelY: explodeY('main') + 4.1,
-      },
-    );
-    // Down flight: tread slabs hanging from the main floor, descending
-    // toward z -3.9 (the basement end).
-    drawFlight(
-      STAIR_DOWN,
-      (z) => 3 * Math.min(1, Math.max(0, (z - STAIR_DOWN.z[0]) / (STAIR_DOWN.z[1] - STAIR_DOWN.z[0]))),
-      {
-        solidBaseY: null,
-        topOffset: explodeY('main') - 3.08,
-        labelText: 'STAIRS DOWN',
-        labelSub: '1.1 × 3.4 m',
-        labelY: explodeY('main') - 1.4,
-      },
-    );
+    drawShaft(SHAFT_UP, 'main', 'STAIRS UP');
+    drawShaft(SHAFT_DOWN, 'basement', 'STAIRS DOWN');
 
     let raf = 0;
     const tick = () => {
