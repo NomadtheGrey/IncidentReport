@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import {
+  CLOSET_PATCHES,
   DOORS,
   FLOOR_Y,
   ROOMS,
-  STAIR_DOWN,
-  STAIR_UP,
+  SHAFT_DOWN,
+  SHAFT_UP,
   groundHeightAt,
   roomAt,
+  shaftHeightAt,
   type FloorId,
+  type ShaftDef,
 } from './house';
 
 // First-person walkable house v1.
@@ -29,6 +32,24 @@ interface Collider {
   maxZ: number;
   minY: number;
   maxY: number;
+  /** When set, this collider is a door leaf's swing-space: it stops
+   *  blocking once that leaf has swung open. */
+  doorIdx?: number;
+}
+
+export interface DoorLeaf {
+  id: string;
+  pivot: THREE.Group;
+  openAngle: number;
+  open01: number;
+  cx: number;
+  cz: number;
+  /** Doorknob privacy lock, set from the inside only (Adam's pin). */
+  locked: boolean;
+  /** Which plan axis the door plane faces: 'x' = the wall runs along z. */
+  axis: 'x' | 'z';
+  /** Direction (+1/-1 along axis) from the doorway toward the inside room. */
+  insideSign: number;
 }
 
 const WALL_H = 2.7;
@@ -44,7 +65,7 @@ const FLOOR_TINT: Record<FloorId, number> = {
   garage: 0x767676,
 };
 
-function buildHouse(scene: THREE.Scene): Collider[] {
+function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLeaf[] } {
   const colliders: Collider[] = [];
   const wallMat = new THREE.MeshStandardMaterial({ color: 0xcfc8b8, roughness: 0.95 });
   const wallMatLow = new THREE.MeshStandardMaterial({ color: 0x9b9587, roughness: 0.95 });
@@ -68,25 +89,54 @@ function buildHouse(scene: THREE.Scene): Collider[] {
     return mesh;
   };
 
-  // ---- Floor slabs (top surface at the floor's y), with stair holes ----
+  // ---- Floor slabs (top surface at the floor's y), with holes ----
+  // Holes: the shaft wells (with the closet patches kept as floor) and
+  // the closet footprints themselves, whose own rooms draw their slabs.
+  type Rect = { x: [number, number]; z: [number, number] };
+  const subtractRect = (pieces: Rect[], hole: Rect): Rect[] => {
+    const out: Rect[] = [];
+    for (const p of pieces) {
+      const ix: [number, number] = [Math.max(p.x[0], hole.x[0]), Math.min(p.x[1], hole.x[1])];
+      const iz: [number, number] = [Math.max(p.z[0], hole.z[0]), Math.min(p.z[1], hole.z[1])];
+      if (ix[0] >= ix[1] || iz[0] >= iz[1]) {
+        out.push(p);
+        continue;
+      }
+      if (hole.x[0] > p.x[0]) out.push({ x: [p.x[0], hole.x[0]], z: p.z });
+      if (hole.x[1] < p.x[1]) out.push({ x: [hole.x[1], p.x[1]], z: p.z });
+      if (hole.z[0] > p.z[0]) out.push({ x: ix, z: [p.z[0], hole.z[0]] });
+      if (hole.z[1] < p.z[1]) out.push({ x: ix, z: [hole.z[1], p.z[1]] });
+    }
+    return out.filter((p) => p.x[1] - p.x[0] > 0.001 && p.z[1] - p.z[0] > 0.001);
+  };
+  const holesFor = (room: (typeof ROOMS)[number]): Rect[] => {
+    const holes: Rect[] = [];
+    const carve = (shaft: ShaftDef, keep: Rect[]) => {
+      // The whole box is a well except the patches that stay floored.
+      let pieces: Rect[] = [{ x: shaft.x, z: shaft.z }];
+      for (const k of keep) pieces = subtractRect(pieces, k);
+      holes.push(...pieces);
+    };
+    if (room.id === 'landing') {
+      carve(SHAFT_UP, CLOSET_PATCHES.filter((p) => p.y === 3));
+    }
+    if (room.id === 'hall') {
+      carve(SHAFT_DOWN, CLOSET_PATCHES.filter((p) => p.y === 0));
+    }
+    if (room.id === 'hall' || room.id === 'landing') {
+      for (const c of ROOMS) {
+        if (c.id.includes('closet') && FLOOR_Y[c.floor] === FLOOR_Y[room.floor]) {
+          holes.push({ x: c.x, z: c.z });
+        }
+      }
+    }
+    return holes;
+  };
   const slabFor = (room: (typeof ROOMS)[number]) => {
     const y = FLOOR_Y[room.floor];
     const mat = new THREE.MeshStandardMaterial({ color: FLOOR_TINT[room.floor], roughness: 0.9 });
-    const hole =
-      room.floor === 'upstairs' ? STAIR_UP : room.floor === 'main' ? STAIR_DOWN : null;
-    const [x0, x1] = room.x;
-    const [z0, z1] = room.z;
-    const intersects =
-      hole && hole.x[0] < x1 && hole.x[1] > x0 && hole.z[0] < z1 && hole.z[1] > z0;
-    const pieces: Array<{ x: [number, number]; z: [number, number] }> = [];
-    if (!intersects || !hole) {
-      pieces.push({ x: [x0, x1], z: [z0, z1] });
-    } else {
-      if (hole.x[0] > x0) pieces.push({ x: [x0, hole.x[0]], z: [z0, z1] });
-      if (hole.x[1] < x1) pieces.push({ x: [hole.x[1], x1], z: [z0, z1] });
-      if (hole.z[0] > z0) pieces.push({ x: [hole.x[0], hole.x[1]], z: [z0, hole.z[0]] });
-      if (hole.z[1] < z1) pieces.push({ x: [hole.x[0], hole.x[1]], z: [hole.z[1], z1] });
-    }
+    let pieces: Rect[] = [{ x: room.x, z: room.z }];
+    for (const hole of holesFor(room)) pieces = subtractRect(pieces, hole);
     for (const p of pieces) {
       const w = p.x[1] - p.x[0];
       const d = p.z[1] - p.z[0];
@@ -156,7 +206,7 @@ function buildHouse(scene: THREE.Scene): Collider[] {
       // Door gaps on this line at this level (stair markers are not doors).
       const gaps: Array<{ from: number; to: number }> = [];
       for (const door of DOORS) {
-        if (door.id === 'basement-door' || door.id === 'stairs-up') continue;
+        if (door.id === 'stairs-up' || door.id === 'stairs-down') continue;
         if (!doorLevels(door).includes(level.y)) continue;
         const onLine =
           orient === 'v'
@@ -208,114 +258,144 @@ function buildHouse(scene: THREE.Scene): Collider[] {
     }
   }
 
-  // ---- Stairs: solid steps + stepped side enclosures ----
-  const buildFlight = (
-    flight: typeof STAIR_UP,
-    yBottom: number,
-    yTop: number,
-    stepAt: (z: number) => number,
-    guards: { west: Array<[number, number]>; east: Array<[number, number]> },
-    railings: { west: Array<[number, number]>; east: Array<[number, number]> },
-  ) => {
-    const N = 15;
-    const len = flight.z[1] - flight.z[0];
-    const w = flight.x[1] - flight.x[0];
-    const cx = (flight.x[0] + flight.x[1]) / 2;
-    for (let i = 0; i < N; i++) {
-      const zA = flight.z[0] + (i * len) / N;
-      const zB = flight.z[0] + ((i + 1) * len) / N;
-      const top = Math.max(stepAt(zA), stepAt(zB));
-      const bottom = Math.min(yBottom, yTop) - 0.05;
-      const h = top - bottom;
-      if (h <= 0) continue;
-      addBox(w, h, zB - zA + 0.03, cx, bottom + h / 2, (zA + zB) / 2, stepMat, false);
-    }
-    // Side enclosures sit ON the flight's edges (they eat flight width,
-    // not slot width). Guard segments are explicit per side: a missing
-    // segment is an entry — head-on at the flight's ends, plus a side
-    // entry at the WEST of each flight's high end and low end, where
-    // the step surface is within a short step of the floor beside it.
-    const sides: Array<{ x: number; segs: Array<[number, number]> }> = [
-      { x: flight.x[0], segs: guards.west },
-      { x: flight.x[1], segs: guards.east },
-    ];
-    for (const { x, segs } of sides) {
-      for (const [zA, zB] of segs) {
-        const top = Math.min(Math.max(stepAt(zA), stepAt(zB)) + 0.95, Math.max(yBottom, yTop) + 0.95);
-        const bottom = Math.min(yBottom, yTop);
-        const h = top - bottom;
+  // ---- Switchback shafts: solid steps, landing, divider, guards ----
+  const doorMat = new THREE.MeshStandardMaterial({ color: 0x6e4f2e, roughness: 0.85 });
+  const buildShaft = (shaft: ShaftDef) => {
+    const base = shaft.base;
+    const top = base + 3;
+    const midX = (shaft.x[0] + shaft.x[1]) / 2;
+    const N = 8;
+    const runLen = shaft.runZ[1] - shaft.runZ[0];
+    // One solid step block per segment of each run.
+    for (const runX of [[shaft.x[0], midX], [midX, shaft.x[1]]] as const) {
+      const cx = (runX[0] + runX[1]) / 2;
+      for (let i = 0; i < N; i++) {
+        const zA = shaft.runZ[0] + (i * runLen) / N;
+        const zB = shaft.runZ[0] + ((i + 1) * runLen) / N;
+        const hA = shaftHeightAt(shaft, cx, zA) ?? base;
+        const hB = shaftHeightAt(shaft, cx, zB) ?? base;
+        const surf = Math.max(hA, hB);
+        const h = surf - (base - 0.05);
         if (h <= 0) continue;
-        addBox(0.12, h, zB - zA, x, bottom + h / 2, (zA + zB) / 2, wallMat, true);
+        addBox(runX[1] - runX[0] - 0.04, h, zB - zA + 0.03, cx, base - 0.05 + h / 2, (zA + zB) / 2, stepMat, false);
       }
     }
-    // Upper-floor railings: the stepped guards top out below the upper
-    // floor along most of the flight, so without these a walker on the
-    // upper floor crosses straight over the open stairwell at floor
-    // height. Railings guard the hole's edges at the upper floor,
-    // with gaps only where an entry is intended.
-    const upperY = Math.max(yBottom, yTop);
-    const railSides: Array<{ x: number; segs: Array<[number, number]> }> = [
-      { x: flight.x[0], segs: railings.west },
-      { x: flight.x[1], segs: railings.east },
-    ];
-    for (const { x, segs } of railSides) {
-      for (const [zA, zB] of segs) {
-        addBox(0.12, 0.95, zB - zA, x, upperY + 0.475, (zA + zB) / 2, wallMat, true);
+    // The half-landing: one solid block spanning the box.
+    addBox(
+      shaft.x[1] - shaft.x[0], 1.5 + 0.05, shaft.landingZ[1] - shaft.landingZ[0],
+      midX, base - 0.05 + (1.5 + 0.05) / 2, (shaft.landingZ[0] + shaft.landingZ[1]) / 2,
+      stepMat, false,
+    );
+    // Divider between the runs, and the outer guard on the corridor
+    // side: stepped segments rising 0.95 above the higher surface.
+    const guardSeg = (x: number, collide: boolean) => {
+      // Segments stop one step short of each end of the runs: a guard
+      // that reaches the very mouth turns its end into a sticky corner
+      // for anyone crossing the strip or the landing beside it. Real
+      // balustrades end at a newel for the same reason.
+      for (let i = 1; i < N - 1; i++) {
+        const zA = shaft.runZ[0] + (i * runLen) / N;
+        const zB = shaft.runZ[0] + ((i + 1) * runLen) / N;
+        const zm = (zA + zB) / 2;
+        const wS = shaftHeightAt(shaft, shaft.x[0] + 0.25, zm) ?? base;
+        const eS = shaftHeightAt(shaft, shaft.x[1] - 0.25, zm) ?? base;
+        const surf = x === midX ? Math.max(wS, eS) : wS;
+        const gTop = Math.min(surf + 0.95, top + 0.95);
+        const h = gTop - base;
+        if (h <= 0) continue;
+        addBox(0.1, h, zB - zA + 0.02, x, base + h / 2, zm, wallMat, collide);
       }
-    }
+    };
+    guardSeg(midX, true); // the divider
+    guardSeg(shaft.x[0], true); // corridor-side enclosure
+    // Railings on the well edges at the shaft's UPPER floor: the west
+    // edge (beside the corridor) and the far end (beside the strip
+    // beyond the landing). Mouths and closet walls guard the rest.
+    addBox(0.12, 0.95, shaft.z[1] - shaft.z[0], shaft.x[0], top + 0.475, (shaft.z[0] + shaft.z[1]) / 2, wallMat, true);
+    const farZ = shaft.id === 'up' ? shaft.z[1] : shaft.z[0];
+    addBox(shaft.x[1] - shaft.x[0], 0.95, 0.12, midX, top + 0.475, farZ, wallMat, true);
   };
+  buildShaft(SHAFT_UP);
+  buildShaft(SHAFT_DOWN);
 
-  buildFlight(
-    STAIR_UP,
-    0,
-    3,
-    (z) => 3 * Math.min(1, Math.max(0, (STAIR_UP.z[1] - z) / (STAIR_UP.z[1] - STAIR_UP.z[0]))),
-    {
-      // West open at the top (z 0.5..1.3, side entry off the landing,
-      // step surface 3.0..2.56) and at the bottom (z 2.9..3.9, entry
-      // off the hall). East closed the whole way.
-      west: [
-        [1.3, 2.2],
-        [2.2, 2.9],
-      ],
-      east: [
-        [0.5, 1.7],
-        [1.7, 2.9],
-        [2.9, 3.9],
-      ],
-    },
-    {
-      // Landing-level railings: west open only at the top side entry
-      // (z 0.5..1.3); east railed the whole length of the hole.
-      west: [[1.3, 3.9]],
-      east: [[0.5, 3.9]],
-    },
-  );
-  buildFlight(
-    STAIR_DOWN,
-    0,
-    -3,
-    (z) => -3 * Math.min(1, Math.max(0, (STAIR_DOWN.z[1] - z) / (STAIR_DOWN.z[1] - STAIR_DOWN.z[0]))),
-    {
-      // West open at the top (z -1.5..-0.5, side entry off the hall,
-      // step surface 0..-0.88). East closed the whole way.
-      west: [
-        [-3.9, -2.7],
-        [-2.7, -1.5],
-      ],
-      east: [
-        [-3.9, -2.77],
-        [-2.77, -1.63],
-        [-1.63, -0.5],
-      ],
-    },
-    {
-      // Main-level railings: west open only at the top side entry
-      // (z -1.5..-0.5); east railed the whole length of the hole.
-      west: [[-3.9, -1.5]],
-      east: [[-3.9, -0.5]],
-    },
-  );
+  // Understair blocks: the volume under a flight's high half is solid
+  // house, not a walk-through void. These colliders sit below the
+  // ramp walker's body band, so climbing traffic passes over them.
+  const addBlock = (x: [number, number], z: [number, number], y0: number, y1: number) => {
+    colliders.push({ minX: x[0], maxX: x[1], minZ: z[0], maxZ: z[1], minY: y0, maxY: y1 });
+  };
+  // Block tops sit below the lowest body band of a walker ON the
+  // ramp above them (ground + 0.05), with margin.
+  addBlock([0, 2], [2.5, 3.5], 0, 1.25); // under the up flight's landing
+  addBlock([0, 1], [2, 2.5], 0, 0.9); // under the up west run's high end
+  addBlock([1.05, 2], [0.6, 2.5], 0, 1.4); // under the up flight's east run (corner inset from the strip)
+  addBlock([0, 2], [-3.5, -2.5], -3, -1.78); // under the down flight's landing
+  addBlock([0, 1], [-2.5, -2], -3, -2.1); // under the down west run's high end
+  addBlock([1.05, 2], [-2.5, -0.6], -3, -1.75); // under the down flight's east run (corner inset)
+
+  // ---- Door leaves: hinged, swinging, real ----
+  // Every doorway in DOORS (except the two stair markers) gets a leaf
+  // on a hinge at one end of its gap. Leaves swing INTO the room they
+  // open into, driven by the walker's proximity (see the tick loop):
+  // approach and the door opens; walk away and it swings shut behind.
+  const leaves: DoorLeaf[] = [];
+  for (const door of DOORS) {
+    if (door.id === 'stairs-up' || door.id === 'stairs-down') continue;
+    const rooms = door.between
+      .map((id) => ROOMS.find((r) => r.id === id))
+      .filter((r): r is (typeof ROOMS)[number] => !!r);
+    if (rooms.length === 0) continue;
+    const floorY = FLOOR_Y[rooms[0].floor];
+    const home = rooms[0];
+    const into = rooms[1] ?? rooms[0];
+    const onXEdge =
+      Math.abs(door.at.x - home.x[0]) < 0.01 || Math.abs(door.at.x - home.x[1]) < 0.01;
+    const pivot = new THREE.Group();
+    let leafMesh: THREE.Mesh;
+    let openAngle: number;
+    if (onXEdge) {
+      // Wall runs along z; hinge at the gap's low-z end.
+      pivot.position.set(door.at.x, floorY, door.at.z - DOOR_W / 2);
+      leafMesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, DOOR_H, DOOR_W), doorMat);
+      leafMesh.position.set(0, DOOR_H / 2, DOOR_W / 2);
+      const side = Math.sign((into.x[0] + into.x[1]) / 2 - door.at.x) || 1;
+      openAngle = side * 1.75;
+    } else {
+      // Wall runs along x; hinge at the gap's low-x end.
+      pivot.position.set(door.at.x - DOOR_W / 2, floorY, door.at.z);
+      leafMesh = new THREE.Mesh(new THREE.BoxGeometry(DOOR_W, DOOR_H, 0.05), doorMat);
+      leafMesh.position.set(DOOR_W / 2, DOOR_H / 2, 0);
+      const side = Math.sign((into.z[0] + into.z[1]) / 2 - door.at.z) || 1;
+      openAngle = -side * 1.75;
+    }
+    pivot.add(leafMesh);
+    scene.add(pivot);
+    const idx = leaves.length;
+    const insideRoom = door.inside ? ROOMS.find((r) => r.id === door.inside) : undefined;
+    const insideSign = insideRoom
+      ? onXEdge
+        ? Math.sign((insideRoom.x[0] + insideRoom.x[1]) / 2 - door.at.x) || 1
+        : Math.sign((insideRoom.z[0] + insideRoom.z[1]) / 2 - door.at.z) || 1
+      : 1;
+    leaves.push({
+      id: door.id, pivot, openAngle, open01: 0, cx: door.at.x, cz: door.at.z,
+      locked: false, axis: onXEdge ? 'x' : 'z', insideSign,
+    });
+    // The closed leaf blocks its doorway; the collider steps aside
+    // once the leaf has swung (checked in collides()).
+    const block: Collider = onXEdge
+      ? {
+          minX: door.at.x - 0.09, maxX: door.at.x + 0.09,
+          minZ: door.at.z - DOOR_W / 2, maxZ: door.at.z + DOOR_W / 2,
+          minY: floorY, maxY: floorY + DOOR_H, doorIdx: idx,
+        }
+      : {
+          minX: door.at.x - DOOR_W / 2, maxX: door.at.x + DOOR_W / 2,
+          minZ: door.at.z - 0.09, maxZ: door.at.z + 0.09,
+          minY: floorY, maxY: floorY + DOOR_H, doorIdx: idx,
+        };
+    colliders.push(block);
+  }
 
   // ---- The world outside: one big dark ground plane at street level ----
   const ground = new THREE.Mesh(
@@ -326,12 +406,14 @@ function buildHouse(scene: THREE.Scene): Collider[] {
   ground.position.y = -0.09;
   scene.add(ground);
 
-  return colliders;
+  return { colliders, leaves };
 }
 
 export default function FirstPersonHouse() {
   const mountRef = useRef<HTMLDivElement>(null);
   const [roomName, setRoomName] = useState('Primary Bedroom');
+  const [doorNote, setDoorNote] = useState<string | null>(null);
+  const lockActionRef = useRef<(() => void) | null>(null);
   const [isTouch, setIsTouch] = useState(false);
   const [stick, setStick] = useState<{ ox: number; oy: number; dx: number; dy: number } | null>(null);
 
@@ -383,12 +465,13 @@ export default function FirstPersonHouse() {
       scene.add(p);
     }
 
-    const colliders = buildHouse(scene);
+    const { colliders, leaves } = buildHouse(scene);
 
     const collides = (x: number, z: number, ground: number): boolean => {
       const bodyLo = ground + 0.05;
       const bodyHi = ground + 1.75;
       for (const c of colliders) {
+        if (c.doorIdx !== undefined && leaves[c.doorIdx].open01 > 0.45) continue;
         if (bodyHi < c.minY || bodyLo > c.maxY) continue;
         if (
           x + RADIUS > c.minX && x - RADIUS < c.maxX &&
@@ -423,6 +506,34 @@ export default function FirstPersonHouse() {
     renderer.domElement.addEventListener('click', onCanvasClick);
 
     let lastRoom = '';
+    let lastDoorNote: string | null = null;
+    // Lock / unlock the nearest door — inside only. A real knob
+    // twists whether the door is open or shut; the lock state just
+    // takes effect (outside can't open it once it's shut). Requiring
+    // "shut" would be unworkable here anyway: the door auto-opens
+    // whenever you step close enough to reach the knob.
+    const toggleLock = () => {
+      let best: DoorLeaf | null = null;
+      let bestD = Infinity;
+      let bestInside = false;
+      for (const leaf of leaves) {
+        const d = Math.hypot(input.pos.x - leaf.cx, input.pos.z - leaf.cz);
+        if (d < bestD) {
+          best = leaf;
+          bestD = d;
+          const off = leaf.axis === 'x' ? input.pos.x - leaf.cx : input.pos.z - leaf.cz;
+          bestInside = off === 0 || Math.sign(off) === leaf.insideSign;
+        }
+      }
+      if (best && bestD < 1.3 && bestInside) {
+        best.locked = !best.locked;
+      }
+    };
+    lockActionRef.current = toggleLock;
+    const onLockKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyE') toggleLock();
+    };
+    window.addEventListener('keydown', onLockKey);
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
@@ -459,6 +570,44 @@ export default function FirstPersonHouse() {
         if (!collides(p.x, p.z + wz, input.ground)) p.z += wz;
       }
 
+      // Doors: swing toward open when the walker is close, shut when
+      // they have walked away. Smoothstepped so they swing, not snap.
+      // A locked door never opens to approach from OUTSIDE; from the
+      // inside it opens as normal (and stays locked until twisted off).
+      let nearest: DoorLeaf | null = null;
+      let nearestD = Infinity;
+      let nearestInside = false;
+      for (const leaf of leaves) {
+        const d = Math.hypot(input.pos.x - leaf.cx, input.pos.z - leaf.cz);
+        const off = leaf.axis === 'x' ? input.pos.x - leaf.cx : input.pos.z - leaf.cz;
+        const isInside = off === 0 || Math.sign(off) === leaf.insideSign;
+        const target = d < 1.35 && (!leaf.locked || isInside) ? 1 : 0;
+        const step = dt * 2.4;
+        leaf.open01 += Math.max(-step, Math.min(step, target - leaf.open01));
+        const o = leaf.open01;
+        leaf.pivot.rotation.y = leaf.openAngle * (o * o * (3 - 2 * o));
+        if (d < nearestD) {
+          nearest = leaf;
+          nearestD = d;
+          nearestInside = isInside;
+        }
+      }
+      // The lock button / hint follows the nearest door.
+      const note =
+        nearest && nearestD < 1.3
+          ? nearest.locked
+            ? nearestInside
+              ? 'Unlock door'
+              : 'Locked'
+            : nearestInside
+              ? 'Lock door'
+              : null
+          : null;
+      if (note !== lastDoorNote) {
+        lastDoorNote = note;
+        setDoorNote(note);
+      }
+
       input.ground = groundHeightAt(input.pos.x, input.pos.z, input.ground);
       input.pos.y = input.ground;
       camera.position.set(input.pos.x, input.ground + EYE, input.pos.z);
@@ -488,6 +637,7 @@ export default function FirstPersonHouse() {
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', kd);
       window.removeEventListener('keyup', ku);
+      window.removeEventListener('keydown', onLockKey);
       document.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('click', onCanvasClick);
       if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
@@ -586,8 +736,33 @@ export default function FirstPersonHouse() {
           fontSize: '0.8rem', opacity: 0.85, textAlign: 'right',
         }}
       >
-        {isTouch ? 'Left thumb: move · drag: look' : 'Click: look · WASD: move · Shift: run'}
+        {isTouch ? 'Left thumb: move · drag: look' : 'Click: look · WASD: move · Shift: run · E: lock / unlock'}
       </div>
+
+      {/* Door lock: a real button on touch; a plain notice when the
+          door you face is locked from the other side. */}
+      {doorNote === 'Lock door' || doorNote === 'Unlock door' ? (
+        <button
+          onClick={() => lockActionRef.current?.()}
+          style={{
+            position: 'absolute', right: 12, bottom: 64, minHeight: 48, minWidth: 48,
+            padding: '0.5rem 1rem', background: 'rgba(20,18,14,0.85)', color: '#e8e4da',
+            border: '1px solid rgba(232,228,218,0.4)', fontSize: '0.95rem', letterSpacing: '0.04em',
+          }}
+        >
+          {doorNote === 'Lock door' ? '\uD83D\uDD12 Lock' : '\uD83D\uDD13 Unlock'}
+        </button>
+      ) : doorNote === 'Locked' ? (
+        <div
+          style={{
+            position: 'absolute', right: 12, bottom: 64, pointerEvents: 'none',
+            padding: '0.5rem 1rem', background: 'rgba(20,18,14,0.85)',
+            fontSize: '0.95rem', letterSpacing: '0.04em', opacity: 0.9,
+          }}
+        >
+          \uD83D\uDD12 Locked
+        </div>
+      ) : null}
 
       {/* Virtual joystick */}
       {stick && (
