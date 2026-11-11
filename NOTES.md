@@ -5,8 +5,9 @@ as we go. Intentions and pinned rulings live in INTENTIONS.md.
 
 ## House dimensions (the game as built, layout v3.1)
 
-- Shell 12 × 9m: x −6..6, z −4.5..4.5. Floors 3.0m apart: basement
-  floor y −3, main y 0, upstairs y 3. Garage attached on the east:
+- Shell 12 × 9m: x −6..6, z −4.5..4.5. Floors 3.0m apart (the game's
+  current spacing — Adam's model standard is 2.5; see open questions):
+  basement floor y −3, main y 0, upstairs y 3. Garage attached on the east:
   x 6..12, z −4.5..1.5.
 - Upstairs: Clarissa's Room 5×4 (x −6..−1, z −4.5..−0.5); Breanna's
   Room 5×5 (x −6..−1, z −0.5..4.5); Hall 2×2 (x −1..1, z −1.5..0.5);
@@ -26,6 +27,12 @@ these, not the other way round.
 - **Scale: 16 Blockbench units = 1m.** Whole-metre grid.
 - **Walls and floors are 0.1m thick** (Adam's standard practice,
   2026-11-11).
+- **Floor height 2.4m; wall height per floor 2.5m** — the 2.5 module
+  is the 2.4 ceiling plus the 0.1 floor slab, so floor-to-floor is
+  2.5 in Adam's standard and each half-flight drops 1.25 (Adam,
+  2026-11-11; his words: "I think… subject to an off-by-one error" —
+  the exports' walls read exactly 2.5, so the standard stands as
+  written).
 - **Compass:** in the model, +x is north and +z is east. The game
   rotates the model into its shell without mirroring: game x = model
   z; game z = model x + 0.5.
@@ -39,10 +46,13 @@ these, not the other way round.
   Consolidating overlaps and slices into clean boxes is the reader's
   job, not Adam's. Only coplanar overlaps matter in-game (they
   flicker); those get stripped when the model is loaded.
-- Walls in his exports are drawn 2.5m tall; the model's floor-to-floor
-  vertical so far is eyeballed and has drifted between exports (~3.9,
-  then ~2.6). Plan geometry (x/z) is the reliable layer until the
-  floor-to-floor question below is ruled.
+- Verticals: the walls obey the 2.5 standard exactly in every export.
+  The STAIR verticals are the wobbly layer — model__2's flights
+  implied a floor-to-floor of ~3.9 (drops of ~1.95 per half), while
+  TopFloor.gltf's stairs are built from individual steps totalling
+  exactly 2.5 (halves ~1.25, risers ~0.2): the standard, in the file.
+  Plan geometry (x/z) remains the reliable layer in the older
+  exports.
 
 ## Where it stands (2026-11-11)
 
@@ -88,12 +98,17 @@ these, not the other way round.
   one is the hall ("landing") closet with no door painted; the far
   compartment is Darleen's, entered from her room through Dooway5.
   v3.1 built them swapped, with no far compartment and no Dooway5.
-- **Floor-to-floor spacing** — the game builds 3.0m; Darleen's closet
-  floor extends over the half-landing, where 3.0m spacing leaves only
-  1.5m of headroom (Adam's model: ~1.9m — standable, tight for the
-  very tall, matching his description). Build as drawn / trim her
-  floor at the landing edge / stretch the game's spacing — Adam rules
-  once the TopFloor read lands.
+- **Floor-to-floor spacing** — Adam's standard is 2.5 (see model
+  standards); the game currently builds 3.0, and TopFloor.gltf's
+  stairs now match his 2.5. Open: does the game adopt 2.5? One
+  consequence needs Adam's eye: at 2.5, a closet floor over the
+  half-landing leaves only 1.25 above the landing — while his
+  description of the real closet ("bump only if well in excess of
+  six feet") implies ~1.9 of clearance at that spot, which neither
+  2.5 nor the game's 3.0 gives (the oversized model__2 stair drawing
+  did). Either the real house's floors are taller than his 2.5
+  standard, or the real closet doesn't extend over the landing. The
+  TopFloor read plus Adam's ruling settle it.
 - **The reconfigure export** (`model__2___1.gltf`) shrank the house
   (far end z=6→4) and compressed the stairs (2m runs, 2×1 landing)
   against Adam's own pins, and left the closet strip overshooting the
