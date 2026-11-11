@@ -149,7 +149,7 @@ export default function HouseGreybox() {
 
     // ---- Doorway indicators: an amber panel standing in each opening,
     // so the doors read at a glance against the plain walls. (The
-    // 'stairs-up' pseudo-door is skipped — the stairs get their own
+    // stair-mouth markers are skipped — the stairs get their own
     // indicator below.)
     const roomById = new Map(ROOMS.map((r) => [r.id, r]));
     const doorMat = new THREE.MeshStandardMaterial({
@@ -159,7 +159,7 @@ export default function HouseGreybox() {
       roughness: 0.6,
     });
     for (const door of DOORS) {
-      if (door.id === 'stairs-up' || door.id === 'stairs-down') continue;
+      if (door.marker) continue;
       const room = roomById.get(door.between[0]) ?? roomById.get(door.between[1]);
       if (!room) continue;
       const y = explodeY(room.floor);
@@ -187,38 +187,37 @@ export default function HouseGreybox() {
     });
     const drawShaft = (shaft: ShaftDef, baseFloor: FloorId, labelText: string) => {
       const baseY = explodeY(baseFloor) + 0.08;
-      const midX = (shaft.x[0] + shaft.x[1]) / 2;
+      const midZ = (shaft.z[0] + shaft.z[1]) / 2;
       const N = 8;
-      const runLen = shaft.runZ[1] - shaft.runZ[0];
-      for (const runX of [[shaft.x[0], midX], [midX, shaft.x[1]]] as const) {
-        const cx = (runX[0] + runX[1]) / 2;
+      const runLen = shaft.runX[1] - shaft.runX[0];
+      for (const runZC of [shaft.z[0] + 0.5, shaft.z[1] - 0.5]) {
         for (let i = 0; i < N; i++) {
-          const zA = shaft.runZ[0] + (i * runLen) / N;
-          const zB = shaft.runZ[0] + ((i + 1) * runLen) / N;
+          const xA = shaft.runX[0] + (i * runLen) / N;
+          const xB = shaft.runX[0] + ((i + 1) * runLen) / N;
           const surf = Math.max(
-            shaftHeightAt(shaft, cx, zA) ?? shaft.base,
-            shaftHeightAt(shaft, cx, zB) ?? shaft.base,
+            shaftHeightAt(shaft, xA, runZC) ?? shaft.base,
+            shaftHeightAt(shaft, xB, runZC) ?? shaft.base,
           );
           const top = baseY + (surf - shaft.base);
           const h = top - baseY + 0.05;
           if (h <= 0.02) continue;
           const step = new THREE.Mesh(
-            new THREE.BoxGeometry(runX[1] - runX[0] - 0.04, h, zB - zA + 0.02),
+            new THREE.BoxGeometry(xB - xA + 0.02, h, 0.96),
             stairMat,
           );
-          step.position.set(cx, top - h / 2 + 0.025, (zA + zB) / 2);
+          step.position.set((xA + xB) / 2, top - h / 2 + 0.025, runZC);
           scene.add(step);
         }
       }
-      // The half-landing block.
+      // The half-landing block, against the east wall.
       const land = new THREE.Mesh(
-        new THREE.BoxGeometry(shaft.x[1] - shaft.x[0], 1.55, shaft.landingZ[1] - shaft.landingZ[0]),
+        new THREE.BoxGeometry(shaft.landingX[1] - shaft.landingX[0], 1.55, shaft.z[1] - shaft.z[0]),
         stairMat,
       );
-      land.position.set(midX, baseY + 1.55 / 2, (shaft.landingZ[0] + shaft.landingZ[1]) / 2);
+      land.position.set((shaft.landingX[0] + shaft.landingX[1]) / 2, baseY + 1.55 / 2, midZ);
       scene.add(land);
-      const label = makeLabel(labelText, 'switchback \u00b7 box 2 \u00d7 3 m');
-      label.position.set(midX, baseY + 4.0, (shaft.z[0] + shaft.z[1]) / 2);
+      const label = makeLabel(labelText, 'switchback \u00b7 box 5 \u00d7 2 m');
+      label.position.set((shaft.x[0] + shaft.x[1]) / 2, baseY + 4.0, midZ);
       scene.add(label);
     };
     drawShaft(SHAFT_UP, 'main', 'STAIRS UP');
