@@ -24,7 +24,12 @@ as we go. Intentions and pinned rulings live in INTENTIONS.md.
 How Adam builds the house model; readers and builders conform to
 these, not the other way round.
 
-- **Scale: 16 Blockbench units = 1m.** Whole-metre grid.
+- **Scale: Adam models at 1 grid unit = 1m.** Blockbench's own
+  convention is 16 units = 1m (a Minecraft block, 16×16 pixels), so
+  its glTF export divides every coordinate by 16 — readers multiply
+  file values by 16 to recover Adam's metres. Verified against the
+  files: the footprint reads exactly 9×12 and the walls exactly 2.5.
+  Whole-metre grid.
 - **Walls and floors are 0.1m thick** (Adam's standard practice,
   2026-11-11).
 - **Floor height 2.4m; wall height per floor 2.5m** — the 2.5 module
