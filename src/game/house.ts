@@ -17,10 +17,12 @@
 //   main hall, the down flight descends beneath it, same footprint.
 // - A solid separator wall runs between the two half-flights (Adam's
 //   pin: a wall, not a railing — you turn around on the landing).
-// - Closets live over the lower half-flights, where the space would
-//   otherwise be wasted (Adam's headspace rule): Darleen's closet at
-//   the far end of her room, and a hall closet off the 2 x 2 hall —
-//   big for a closet, too tiny for a room.
+// - Darleen's closet lives over the lower half-flight of the stairs,
+//   at the hall end of the band (Adam, 2026-11-11): its floor is the
+//   squared-off ceiling over that flight — flat, not sloped, so the
+//   space is usable — with about 2m of headroom under it on the
+//   flight (tight if you're well over six feet). Big for a closet,
+//   too tiny for a room.
 // - Whole-metre grid throughout (Adam's pin).
 
 export type FloorId = 'basement' | 'main' | 'upstairs' | 'garage';
@@ -97,13 +99,13 @@ export const ROOMS: RoomDef[] = [
     notes: 'The stair band: two runs and the half-landing against the east wall.',
   },
   {
-    id: 'hall-closet',
-    name: 'Hall Closet',
+    id: 'darleens-closet',
+    name: "Darleen's Closet",
     floor: 'upstairs',
     x: [1, 3],
-    z: [-1.5, -0.5],
-    items: ['spare blankets'],
-    notes: 'Off the hall, over the up flight\u2019s lower half-flight. Big for a closet, too tiny for a room.',
+    z: [-0.5, 0.5],
+    items: ['baseball bat', 'spare blankets'],
+    notes: 'Over the lower half-flight of the stairs, its floor the squared-off ceiling over that flight. Big for a closet, too tiny for a room. Door off the hall — the one the model left unpainted.',
   },
   {
     id: 'bathroom',
@@ -121,16 +123,7 @@ export const ROOMS: RoomDef[] = [
     x: [-1, 6],
     z: [0.5, 4.5],
     items: ['phone (nightstand)', 'clothes iron'],
-    notes: 'Start room. The long room on the north side, with the closet at its far end.',
-  },
-  {
-    id: 'darleens-closet',
-    name: "Darleen's Closet",
-    floor: 'upstairs',
-    x: [4, 6],
-    z: [0.5, 2.5],
-    items: ['baseball bat'],
-    notes: 'Stuck back at the far end of her room, over the lower half-flight — space that would be wasted.',
+    notes: 'Start room. The long room on the north side.',
   },
 
   // ---- MAIN FLOOR — the incident floor ----
@@ -219,8 +212,8 @@ export const DOORS: DoorDef[] = [
   { id: 'kitchen-hall', between: ['kitchen', 'hall'], at: { x: -1, z: -2 }, inside: 'kitchen' },
   { id: 'hall-mudroom', between: ['hall', 'mudroom'], at: { x: 1, z: -3 }, inside: 'mudroom' },
   { id: 'hall-dining', between: ['hall', 'dining-room'], at: { x: 1, z: 2.5 }, inside: 'dining-room' },
-  { id: 'stairs-up-mouth', between: ['hall', 'main-landing'], at: { x: 1, z: -1 }, marker: true, notes: 'The up flight\u2019s mouth (south run). Stair 3 creaks.' },
-  { id: 'stairs-down-mouth', between: ['hall', 'main-landing'], at: { x: 1, z: 0 }, marker: true, notes: 'The down flight\u2019s mouth (north run), beside the up mouth.' },
+  { id: 'stairs-up-mouth', between: ['hall', 'main-landing'], at: { x: 1, z: 0 }, marker: true, notes: 'The up flight\u2019s mouth (north run, Darleen\u2019s side). Stair 3 creaks.' },
+  { id: 'stairs-down-mouth', between: ['hall', 'main-landing'], at: { x: 1, z: -1 }, marker: true, notes: 'The down flight\u2019s mouth (south run), beside the up mouth.' },
   { id: 'mudroom-garage', between: ['mudroom', 'garage'], at: { x: 6, z: -3 }, inside: 'mudroom', notes: 'The internal door. Its handle turns slowly.' },
   { id: 'garage-side-door', between: ['garage', 'outside'], at: { x: 9, z: -4.5 }, inside: 'garage', notes: 'Jimmied. His way in.' },
   // Upstairs.
@@ -228,9 +221,8 @@ export const DOORS: DoorDef[] = [
   { id: 'hall-breanna', between: ['upstairs-hall', 'breannas-room'], at: { x: -1, z: 0 }, inside: 'breannas-room' },
   { id: 'hall-bathroom', between: ['upstairs-hall', 'bathroom'], at: { x: 0, z: -1.5 }, inside: 'bathroom' },
   { id: 'hall-darleen', between: ['upstairs-hall', 'darleens-room'], at: { x: 0, z: 0.5 }, inside: 'darleens-room' },
-  { id: 'stairs-arrival', between: ['upstairs-hall', 'landing'], at: { x: 1, z: 0 }, marker: true, notes: 'Where the up flight arrives at the hall (north run).' },
-  { id: 'hall-closet-door', between: ['landing', 'hall-closet'], at: { x: 1, z: -1 }, inside: 'hall-closet', notes: 'The door Adam\u2019s model left unpainted. Painted.' },
-  { id: 'darleens-closet-door', between: ['darleens-closet', 'darleens-room'], at: { x: 4, z: 1.5 }, inside: 'darleens-closet' },
+  { id: 'stairs-arrival', between: ['upstairs-hall', 'landing'], at: { x: 1, z: -1 }, marker: true, notes: 'Where the up flight arrives at the hall (south run).' },
+  { id: 'darleens-closet-door', between: ['landing', 'darleens-closet'], at: { x: 1, z: 0 }, inside: 'darleens-closet', notes: 'The door Adam\u2019s model left unpainted. Painted.' },
 ];
 
 // NOTE — Adam's model draws one more door: off the stair band's far
@@ -249,11 +241,14 @@ export const FAST_ROUTE = ['darleens-room', 'upstairs-hall', 'hall', 'kitchen'] 
 // wide: south run z -1.5..-0.5, north run z -0.5..0.5, the separator
 // wall built between them at z=-0.5). Each run is 3m long and climbs
 // half a floor (1.5m); the landing is 2 x 2m.
-// UP flight: enters on the SOUTH run at main, climbs east to the
-// landing, returns on the NORTH run, arriving at the upstairs hall.
-// DOWN flight (stacked directly beneath): enters on the NORTH run at
-// main, descends east to its landing, returns on the SOUTH run,
-// arriving in the basement under the up flight's front door.
+// UP flight: enters on the NORTH run at main (Darleen's side — in
+// Adam's model that run is the one drawn floored, the arriving run
+// open), climbs east to the landing, returns on the SOUTH run,
+// arriving at the upstairs hall. Descending, the north run is the
+// LOWER half-flight — Darleen's closet floors over its low end.
+// DOWN flight (stacked directly beneath): enters on the SOUTH run at
+// main, descends east to its landing, returns on the NORTH run,
+// arriving in the basement.
 export interface ShaftDef {
   id: 'up' | 'down';
   /** The band's plan rect. */
@@ -272,8 +267,8 @@ export interface ShaftDef {
 
 const BAND = { x: [1, 6] as [number, number], z: [-1.5, 0.5] as [number, number], runX: [1, 4] as [number, number], landingX: [4, 6] as [number, number] };
 
-export const SHAFT_UP: ShaftDef = { id: 'up', ...BAND, base: 0, first: 'south', dir: 'up' };
-export const SHAFT_DOWN: ShaftDef = { id: 'down', ...BAND, base: -3, first: 'north', dir: 'down' };
+export const SHAFT_UP: ShaftDef = { id: 'up', ...BAND, base: 0, first: 'north', dir: 'up' };
+export const SHAFT_DOWN: ShaftDef = { id: 'down', ...BAND, base: -3, first: 'south', dir: 'down' };
 
 /** Step-surface height of a shaft at a plan point, or null outside it. */
 export function shaftHeightAt(shaft: ShaftDef, x: number, z: number): number | null {
@@ -293,10 +288,11 @@ export function shaftHeightAt(shaft: ShaftDef, x: number, z: number): number | n
 
 /** Floor patches inside the band: floor that exists over a run's low
  *  end, where headroom below allows (Adam's closet/headspace rule).
- *  Only one survives the stack: the upstairs hall closet, floored over
- *  the up flight's south run where that run is still low. */
+ *  Only one survives the stack: Darleen's closet, floored over the
+ *  up flight's north run where that run is still low (the lower
+ *  half-flight on the way down, on her side of the band). */
 export const CLOSET_PATCHES: Array<{ x: [number, number]; z: [number, number]; y: number }> = [
-  { x: [1, 3], z: [-1.5, -0.5], y: 3 }, // the hall closet, over the up flight
+  { x: [1, 3], z: [-0.5, 0.5], y: 3 }, // Darleen's closet, over the lower half-flight
 ];
 
 const inRect = (x: number, z: number, r: { x: [number, number]; z: [number, number] }) =>

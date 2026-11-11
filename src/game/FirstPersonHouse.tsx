@@ -349,13 +349,13 @@ function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLe
     }
   }
 
-  // The solid under the down flight's north run and landing: a
+  // The solid under the down flight's south run and landing: a
   // collider only (the steps already draw the mass). Its top sits
   // below the lowest body band of a walker ON the down ramps.
   const addBlock = (x: [number, number], z: [number, number], y0: number, y1: number) => {
     colliders.push({ minX: x[0], maxX: x[1], minZ: z[0], maxZ: z[1], minY: y0, maxY: y1 });
   };
-  addBlock([1, 6], [-0.5, 0.5], -3, -1.7);
+  addBlock([1, 6], [-1.5, -0.5], -3, -1.7);
 
   // ---- Door leaves: hinged, swinging, real ----
   // Every doorway in DOORS (except the stair-mouth markers) gets a leaf
@@ -492,19 +492,21 @@ export default function FirstPersonHouse() {
     }
 
     const { colliders, leaves } = buildHouse(scene);
-
     const collides = (x: number, z: number, ground: number): boolean => {
       const bodyLo = ground + 0.05;
       const bodyHi = ground + 1.75;
       for (const c of colliders) {
         if (c.doorIdx !== undefined && leaves[c.doorIdx].open01 > 0.45) continue;
         if (bodyHi < c.minY || bodyLo > c.maxY) continue;
-        if (
-          x + RADIUS > c.minX && x - RADIUS < c.maxX &&
-          z + RADIUS > c.minZ && z - RADIUS < c.maxZ
-        ) {
-          return true;
-        }
+        // True circle-vs-box: the nearest point of the box must come
+        // within RADIUS. (A square body catches on wall-stub corners —
+        // e.g. the stub between the closet door and the stair arrival
+        // stopped an off-centre approach dead; a round body slides by.)
+        const nx = Math.max(c.minX, Math.min(x, c.maxX));
+        const nz = Math.max(c.minZ, Math.min(z, c.maxZ));
+        const dx = x - nx;
+        const dz = z - nz;
+        if (dx * dx + dz * dz < RADIUS * RADIUS) return true;
       }
       return false;
     };
