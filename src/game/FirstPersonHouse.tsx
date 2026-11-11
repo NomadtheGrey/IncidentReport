@@ -14,14 +14,14 @@ import {
   type ShaftDef,
 } from './house';
 
-// First-person walkable house v1.
+// First-person walkable house (layout v3, Adam's Blockbench plan).
 // - The solid house: floors stacked at real heights, walls built from the
 //   room rectangles in house.ts with door gaps cut where DOORS say, and
-//   the two stair flights as solid steps in the hall column.
+//   both stair flights stacked in the one east band off the hall.
+// - Doors are hinged leaves with inside privacy locks (E / Lock button).
 // - Desktop: click to pointer-lock, mouse look, WASD / arrows, Shift run.
 // - Phone: left-thumb virtual joystick (dynamic origin, push past ~85%
-//   to run), drag anywhere else to look. No buttons needed yet — doors
-//   are open gaps in v1 and there is nothing to pick up. Yet.
+//   to run), drag anywhere else to look.
 // - Collision is a circle vs wall boxes, per axis; ground height comes
 //   from house.ts groundHeightAt (stairs are ramps in that function).
 
@@ -112,7 +112,7 @@ function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLe
   const holesFor = (room: (typeof ROOMS)[number]): Rect[] => {
     const holes: Rect[] = [];
     const carve = (shaft: ShaftDef, keep: Rect[]) => {
-      // The whole box is a well except the patches that stay floored.
+      // The whole band is a well except the patches that stay floored.
       let pieces: Rect[] = [{ x: shaft.x, z: shaft.z }];
       for (const k of keep) pieces = subtractRect(pieces, k);
       holes.push(...pieces);
@@ -120,14 +120,17 @@ function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLe
     if (room.id === 'landing') {
       carve(SHAFT_UP, CLOSET_PATCHES.filter((p) => p.y === 3));
     }
-    if (room.id === 'hall') {
-      carve(SHAFT_DOWN, CLOSET_PATCHES.filter((p) => p.y === 0));
+    if (room.id === 'main-landing') {
+      // The main floor inside the band is the flights themselves.
+      carve(SHAFT_DOWN, []);
     }
-    if (room.id === 'hall' || room.id === 'landing') {
-      for (const c of ROOMS) {
-        if (c.id.includes('closet') && FLOOR_Y[c.floor] === FLOOR_Y[room.floor]) {
-          holes.push({ x: c.x, z: c.z });
-        }
+    // Any room that contains a same-floor closet leaves the closet's
+    // footprint out of its own slab; the closet draws its own.
+    for (const c of ROOMS) {
+      if (c.id === room.id || !c.id.includes('closet')) continue;
+      if (FLOOR_Y[c.floor] !== FLOOR_Y[room.floor]) continue;
+      if (c.x[0] >= room.x[0] && c.x[1] <= room.x[1] && c.z[0] >= room.z[0] && c.z[1] <= room.z[1]) {
+        holes.push({ x: c.x, z: c.z });
       }
     }
     return holes;
@@ -206,7 +209,6 @@ function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLe
       // Door gaps on this line at this level (stair markers are not doors).
       const gaps: Array<{ from: number; to: number }> = [];
       for (const door of DOORS) {
-        if (door.id === 'stairs-up' || door.id === 'stairs-down') continue;
         if (!doorLevels(door).includes(level.y)) continue;
         const onLine =
           orient === 'v'
@@ -258,89 +260,111 @@ function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLe
     }
   }
 
-  // ---- Switchback shafts: solid steps, landing, divider, guards ----
+  // ---- The stacked switchback band: steps, landings, the spine ----
   const doorMat = new THREE.MeshStandardMaterial({ color: 0x6e4f2e, roughness: 0.85 });
   const buildShaft = (shaft: ShaftDef) => {
     const base = shaft.base;
-    const top = base + 3;
-    const midX = (shaft.x[0] + shaft.x[1]) / 2;
     const N = 8;
-    const runLen = shaft.runZ[1] - shaft.runZ[0];
-    // One solid step block per segment of each run.
-    for (const runX of [[shaft.x[0], midX], [midX, shaft.x[1]]] as const) {
-      const cx = (runX[0] + runX[1]) / 2;
+    const runLen = shaft.runX[1] - shaft.runX[0];
+    const midZ = (shaft.z[0] + shaft.z[1]) / 2;
+    const runs: Array<[number, number]> = [
+      [shaft.z[0], midZ],
+      [midZ, shaft.z[1]],
+    ];
+    for (const runZ of runs) {
+      const zc = (runZ[0] + runZ[1]) / 2;
       for (let i = 0; i < N; i++) {
-        const zA = shaft.runZ[0] + (i * runLen) / N;
-        const zB = shaft.runZ[0] + ((i + 1) * runLen) / N;
-        const hA = shaftHeightAt(shaft, cx, zA) ?? base;
-        const hB = shaftHeightAt(shaft, cx, zB) ?? base;
-        const surf = Math.max(hA, hB);
-        const h = surf - (base - 0.05);
+        const xA = shaft.runX[0] + (i * runLen) / N;
+        const xB = shaft.runX[0] + ((i + 1) * runLen) / N;
+        const surf = Math.max(
+          shaftHeightAt(shaft, xA, zc) ?? base,
+          shaftHeightAt(shaft, xB, zc) ?? base,
+        );
+        // The down flight stands solid on the basement floor. The up
+        // flight is a sloped slab: the down flight passes beneath it.
+        const bottom = shaft.dir === 'down' ? base - 0.05 : surf - 0.5;
+        const h = surf - bottom;
         if (h <= 0) continue;
-        addBox(runX[1] - runX[0] - 0.04, h, zB - zA + 0.03, cx, base - 0.05 + h / 2, (zA + zB) / 2, stepMat, false);
+        addBox(xB - xA + 0.03, h, runZ[1] - runZ[0] - 0.04, (xA + xB) / 2, bottom + h / 2, zc, stepMat, false);
       }
     }
-    // The half-landing: one solid block spanning the box.
+    // The half-landing: one block spanning the band, against the east wall.
+    const landTop = base + 1.5;
+    const landBottom = shaft.dir === 'down' ? base - 0.05 : landTop - 0.5;
     addBox(
-      shaft.x[1] - shaft.x[0], 1.5 + 0.05, shaft.landingZ[1] - shaft.landingZ[0],
-      midX, base - 0.05 + (1.5 + 0.05) / 2, (shaft.landingZ[0] + shaft.landingZ[1]) / 2,
+      shaft.landingX[1] - shaft.landingX[0], landTop - landBottom, shaft.z[1] - shaft.z[0],
+      (shaft.landingX[0] + shaft.landingX[1]) / 2, landBottom + (landTop - landBottom) / 2, midZ,
       stepMat, false,
     );
-    // Divider between the runs, and the outer guard on the corridor
-    // side: stepped segments rising 0.95 above the higher surface.
-    const guardSeg = (x: number, collide: boolean) => {
-      // Segments stop one step short of each end of the runs: a guard
-      // that reaches the very mouth turns its end into a sticky corner
-      // for anyone crossing the strip or the landing beside it. Real
-      // balustrades end at a newel for the same reason.
-      for (let i = 1; i < N - 1; i++) {
-        const zA = shaft.runZ[0] + (i * runLen) / N;
-        const zB = shaft.runZ[0] + ((i + 1) * runLen) / N;
-        const zm = (zA + zB) / 2;
-        const wS = shaftHeightAt(shaft, shaft.x[0] + 0.25, zm) ?? base;
-        const eS = shaftHeightAt(shaft, shaft.x[1] - 0.25, zm) ?? base;
-        const surf = x === midX ? Math.max(wS, eS) : wS;
-        const gTop = Math.min(surf + 0.95, top + 0.95);
-        const h = gTop - base;
-        if (h <= 0) continue;
-        addBox(0.1, h, zB - zA + 0.02, x, base + h / 2, zm, wallMat, collide);
-      }
-    };
-    guardSeg(midX, true); // the divider
-    guardSeg(shaft.x[0], true); // corridor-side enclosure
-    // Railings on the well edges at the shaft's UPPER floor: the west
-    // edge (beside the corridor) and the far end (beside the strip
-    // beyond the landing). Mouths and closet walls guard the rest.
-    addBox(0.12, 0.95, shaft.z[1] - shaft.z[0], shaft.x[0], top + 0.475, (shaft.z[0] + shaft.z[1]) / 2, wallMat, true);
-    const farZ = shaft.id === 'up' ? shaft.z[1] : shaft.z[0];
-    addBox(shaft.x[1] - shaft.x[0], 0.95, 0.12, midX, top + 0.475, farZ, wallMat, true);
   };
   buildShaft(SHAFT_UP);
   buildShaft(SHAFT_DOWN);
 
-  // Understair blocks: the volume under a flight's high half is solid
-  // house, not a walk-through void. These colliders sit below the
-  // ramp walker's body band, so climbing traffic passes over them.
+  // The separator: a SOLID wall between the two runs (Adam's pin — a
+  // wall, not a railing), stepped from the down flight's surface up to
+  // a guard height over the up flight's. It stops one segment short of
+  // each end of the runs — a guard that reaches the very mouth turns
+  // its end into a sticky corner. You turn around its end, on the
+  // landing.
+  {
+    const N = 8;
+    const runLen = SHAFT_UP.runX[1] - SHAFT_UP.runX[0];
+    const midZ = (SHAFT_UP.z[0] + SHAFT_UP.z[1]) / 2;
+    for (let i = 1; i < N - 1; i++) {
+      const xA = SHAFT_UP.runX[0] + (i * runLen) / N;
+      const xB = SHAFT_UP.runX[0] + ((i + 1) * runLen) / N;
+      const xm = (xA + xB) / 2;
+      const upSurf = Math.max(
+        shaftHeightAt(SHAFT_UP, xm, SHAFT_UP.z[0] + 0.25) ?? 0,
+        shaftHeightAt(SHAFT_UP, xm, SHAFT_UP.z[1] - 0.25) ?? 0,
+      );
+      const downSurf = Math.min(
+        shaftHeightAt(SHAFT_DOWN, xm, SHAFT_DOWN.z[0] + 0.25) ?? -3,
+        shaftHeightAt(SHAFT_DOWN, xm, SHAFT_DOWN.z[1] - 0.25) ?? -3,
+      );
+      const top = Math.min(upSurf + 0.95, 3.95);
+      const bottom = downSurf - 0.05;
+      const h = top - bottom;
+      if (h <= 0) continue;
+      addBox(xB - xA + 0.02, h, 0.1, xm, bottom + h / 2, midZ, wallMat, true);
+    }
+  }
+
+  // Basement enclosures: the down flight's flanks where it crosses the
+  // open basement, stepped from the floor to guard height over the
+  // ramps, so nobody walks into the side of the flight.
+  {
+    const N = 10;
+    for (const sideZ of [SHAFT_DOWN.z[0], SHAFT_DOWN.z[1]]) {
+      const zc = sideZ === SHAFT_DOWN.z[0] ? SHAFT_DOWN.z[0] + 0.25 : SHAFT_DOWN.z[1] - 0.25;
+      for (let i = 0; i < N; i++) {
+        const xA = SHAFT_DOWN.x[0] + (i * (SHAFT_DOWN.x[1] - SHAFT_DOWN.x[0])) / N;
+        const xB = SHAFT_DOWN.x[0] + ((i + 1) * (SHAFT_DOWN.x[1] - SHAFT_DOWN.x[0])) / N;
+        const surf = shaftHeightAt(SHAFT_DOWN, (xA + xB) / 2, zc) ?? -3;
+        const top = surf + 0.95;
+        const h = top - (SHAFT_DOWN.base - 0.05);
+        if (h <= 0) continue;
+        addBox(xB - xA + 0.02, h, 0.1, (xA + xB) / 2, SHAFT_DOWN.base - 0.05 + h / 2, sideZ, wallMatLow, true);
+      }
+    }
+  }
+
+  // The solid under the down flight's north run and landing: a
+  // collider only (the steps already draw the mass). Its top sits
+  // below the lowest body band of a walker ON the down ramps.
   const addBlock = (x: [number, number], z: [number, number], y0: number, y1: number) => {
     colliders.push({ minX: x[0], maxX: x[1], minZ: z[0], maxZ: z[1], minY: y0, maxY: y1 });
   };
-  // Block tops sit below the lowest body band of a walker ON the
-  // ramp above them (ground + 0.05), with margin.
-  addBlock([0, 2], [2.5, 3.5], 0, 1.25); // under the up flight's landing
-  addBlock([0, 1], [2, 2.5], 0, 0.9); // under the up west run's high end
-  addBlock([1.05, 2], [0.6, 2.5], 0, 1.4); // under the up flight's east run (corner inset from the strip)
-  addBlock([0, 2], [-3.5, -2.5], -3, -1.78); // under the down flight's landing
-  addBlock([0, 1], [-2.5, -2], -3, -2.1); // under the down west run's high end
-  addBlock([1.05, 2], [-2.5, -0.6], -3, -1.75); // under the down flight's east run (corner inset)
+  addBlock([1, 6], [-0.5, 0.5], -3, -1.7);
 
   // ---- Door leaves: hinged, swinging, real ----
-  // Every doorway in DOORS (except the two stair markers) gets a leaf
+  // Every doorway in DOORS (except the stair-mouth markers) gets a leaf
   // on a hinge at one end of its gap. Leaves swing INTO the room they
   // open into, driven by the walker's proximity (see the tick loop):
   // approach and the door opens; walk away and it swings shut behind.
   const leaves: DoorLeaf[] = [];
   for (const door of DOORS) {
-    if (door.id === 'stairs-up' || door.id === 'stairs-down') continue;
+    if (door.marker) continue;
     const rooms = door.between
       .map((id) => ROOMS.find((r) => r.id === id))
       .filter((r): r is (typeof ROOMS)[number] => !!r);
@@ -411,7 +435,7 @@ function buildHouse(scene: THREE.Scene): { colliders: Collider[]; leaves: DoorLe
 
 export default function FirstPersonHouse() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [roomName, setRoomName] = useState('Primary Bedroom');
+  const [roomName, setRoomName] = useState("Darleen's Room");
   const [doorNote, setDoorNote] = useState<string | null>(null);
   const lockActionRef = useRef<(() => void) | null>(null);
   const [isTouch, setIsTouch] = useState(false);
@@ -422,7 +446,7 @@ export default function FirstPersonHouse() {
     yaw: -Math.PI / 2, // face east, toward the bedroom door
     pitch: 0,
     stickVec: { x: 0, y: 0, mag: 0 },
-    pos: new THREE.Vector3(-3.4, 3, 2.5),
+    pos: new THREE.Vector3(3, 3, 2.5),
     ground: 3,
   });
   const stickPointerRef = useRef<number | null>(null);
@@ -455,8 +479,10 @@ export default function FirstPersonHouse() {
     // Warm practicals so interiors read at night without a flashlight yet.
     for (const [x, y, z] of [
       [-3, 2.4, 0],
-      [3.5, 2.4, -2],
+      [3.5, 2.4, -3],
       [0.7, 5.4, 2],
+      [-3.5, 5.4, 0],
+      [3, 5.4, -3],
       [8.5, 2.4, -1],
       [0, -0.6, 0],
     ] as const) {
