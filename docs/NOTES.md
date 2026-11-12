@@ -96,6 +96,64 @@ these, not the other way round.
   weakness under machine load (Adam's call, 2026-11-12: ship it to
   WIP without the suite). Adam's phone playtest after a merge is
   the acceptance.
+- **Merge #6 LIVE (2026-11-12):** the furnished upstairs merged
+  (PR #6, main 971ad13) and is serving — bundle index-B0knTNB9.js.
+  AUTO-BUILD ROOT CAUSE FOUND the same day (API-verified): the
+  build trigger's path_excludes contained a bare "*" alongside
+  the intended "*.md" entries, which excluded every file and
+  silently vetoed every push build. Adam removed the "*" in the
+  dashboard (verified via API); the next merge should build
+  itself. The "cause still open" note above is superseded.
+- **Adam's playtest of #6 (2026-11-12) found:** the mirror never
+  rendered and the bathtub read as sunk with its far lip missing —
+  one cause: the model's wall faces sit 0.1 inside the room
+  boundary lines (walls built into the rooms), and the furniture
+  backs were placed on the boundary lines, sinking pieces 0.1
+  into the walls. Fix queued: backs to the measured faces. The
+  basement stair shaft also reads near-black (sealed enclosure,
+  little game light) — a shaft light is queued. The models
+  themselves were praised; a colour pass (multi-colour per piece)
+  plus floor colours by room went to the Models chat.
+- **Title cleanup (2026-11-12, on WIP):** the "Walk the house"
+  button and the code-built house views are retired (Adam: its
+  layout "isn't even close"); the title now offers "Walk the model
+  house" and an "Exploded view" rebuilt on Adam's model itself —
+  the three floor bands lifted apart (src/game/ExplodedModel.tsx,
+  clipping-plane bands + orbit). src/game/house.ts,
+  FirstPersonHouse.tsx and HouseGreybox.tsx are deleted; the
+  layout data they carried is superseded by the model + the
+  LAYOUT docs.
+- **Divider trimmed — model updated (2026-11-12, on WIP):** Adam
+  trimmed the rogue StairsEnclosure in Blockbench and re-exported
+  AllFloors.gltf (Drive, 238,275 bytes; same 1,616 tris, same
+  bounds). Verified by triangle probe: the TOP floor's divider now
+  ends at the landing's west edge (game x 4) — the switchback turn
+  is genuinely open, and the walkthrough's load-side separator
+  clamp is a no-op there. The BASEMENT twin (BasementStairs-
+  Enclosure) still crosses its landing as drawn; the clamp still
+  covers it, exactly as before. Adam's call whether to trim that
+  one too.
+- **Colour + fix integration (2026-11-12, on WIP):** Models'
+  colour pass is IN — all eight furniture .gltf files replaced
+  with the coloured exports (real materials: porcelain, chrome,
+  sage-painted vanity, walnut bedroom set, mirror glass in a dark
+  walnut frame; the objects/dog/pillowcase colours ride along in
+  Models' files for when those pieces enter the game). The
+  pillowcase itself is in the project: public/models/
+  pillowcase.gltf (+ pillowcase.bbmodel at the project root).
+  Furniture backs moved to the measured wall faces (see the
+  playtest note above) — mirror visible, tub rim restored,
+  headboards proud of the walls. Basement lighting added: a
+  point inside the stair shaft over the landing, one on the
+  basement's east side, and the basement points raised — the
+  floor is inspectable now; a main-floor shaft-top point too.
+  NOT in this landing: the floor colours — Models' coloured
+  AllFloors was built from the PRE-TRIM export (its top divider
+  still spans the landing), so a re-run against the trimmed
+  model is with Models; it integrates when it lands. Also from
+  Models (2026-11-12): both characters verified — the intruder
+  stitch (ch28-stitched.glb, 7 clips, 1.763 m) and the homeowner
+  (Goodguy.glb, 9 clips, 1.760 m) are sound and metre-true.
 
 ## The model pipeline
 
