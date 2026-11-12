@@ -103,7 +103,9 @@ these, not the other way round.
 
 - All pushes go to the `WIP` branch (exact case). Main changes only
   through a WIP→main merge, only on Adam's explicit word.
-- One logical landing = one push; docs travel alone.
+- One logical landing = one push — and since 2026-11-12 the .md
+  files ride IN the same push as the code they document (Adam's
+  ruling), so a landing is a single merge, docs included.
 - Verify pushed content byte-identical at origin — a tool's OK is
   advisory only.
 - Before a push or merge puts an approval card in front of Adam, the
