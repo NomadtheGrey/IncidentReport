@@ -123,6 +123,16 @@ these, not the other way round.
   FirstPersonHouse.tsx and HouseGreybox.tsx are deleted; the
   layout data they carried is superseded by the model + the
   LAYOUT docs.
+- **Divider trimmed — model updated (2026-11-12, on WIP):** Adam
+  trimmed the rogue StairsEnclosure in Blockbench and re-exported
+  AllFloors.gltf (Drive, 238,275 bytes; same 1,616 tris, same
+  bounds). Verified by triangle probe: the TOP floor's divider now
+  ends at the landing's west edge (game x 4) — the switchback turn
+  is genuinely open, and the walkthrough's load-side separator
+  clamp is a no-op there. The BASEMENT twin (BasementStairs-
+  Enclosure) still crosses its landing as drawn; the clamp still
+  covers it, exactly as before. Adam's call whether to trim that
+  one too.
 
 ## The model pipeline
 
