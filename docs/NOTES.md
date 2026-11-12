@@ -178,6 +178,28 @@ these, not the other way round.
   markers export; the locator map also says the kitchen is the
   EAST main-floor room (SinkLoc/CabinetsLoc), so the provisional
   linoleum belongs there, not in the west (dining) room.
+- **Floor colours IN (2026-11-12, on WIP):** Models' re-run swapped
+  in — flat floor materials by room on the markers model (hardwood
+  #9A7350 living areas + dining, linoleum #B5B8A4 upstairs bathroom
+  + the EAST main-floor kitchen, concrete #8E8E8C basement).
+  Verified in the renderer: kitchen floor reads pale, dining room
+  reads wood-brown; locator tris ride through identical (264) and
+  stay hidden. (An early probe script had a flipped axis and
+  briefly accused the file of the old west-linoleum mistake — the
+  rendered view cleared it; probes are advisory, the renderer is
+  the arbiter.)
+- **Main-floor furniture IN (2026-11-12, on WIP):** Models' batch
+  built from Adam's *Loc markers, placed on them (backs on the
+  measured wall faces): dining table 3.0×1.5 + 8 chairs ringed
+  facing it; couches (3-seat west wall, 2-seat north wall) +
+  entertainment center + curio in the living/entry area; kitchen
+  cabinet runs south + east with the sink centred on SinkLoc and
+  the JUNK DRAWER as the south run's west-end module (modelled
+  ajar), wall cabinets above both runs. The walkthrough's
+  furniture loader gained a per-piece floor height for these.
+  Screenshot-verified room by room. HUD zone names still predate
+  Adam's geography (the "Kitchen" label sits over the dining
+  room) — renames wait on his library scribbles.
 
 ## The model pipeline
 

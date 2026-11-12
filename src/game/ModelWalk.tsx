@@ -147,6 +147,7 @@ interface FurnitureSpec {
   w: number; d: number; h: number;
   cx: number; cz: number; yaw: number;
   box: boolean;
+  y?: number; // floor height the piece stands on (default FURN_Y)
 }
 
 const FURN_Y = 2.6;
@@ -169,6 +170,35 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -4.87, cz: 1.7, yaw: Math.PI / 2, box: true },
   { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -5.66, cz: 2.85, yaw: Math.PI / 2, box: true },
   { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.9, cz: -0.14, yaw: 0, box: true },
+  // ---- Main floor (y = 0.1), placed on Adam's *Loc markers
+  // (Models batch, 2026-11-12). Centres are the markers, except
+  // backed pieces, whose backs sit on the measured wall faces.
+  // Dining (west room): table on its 3.0 x 1.5 marker plate, eight
+  // chairs ringed on their markers, facing the table.
+  { file: 'dining-table', lc: [0, 0], w: 3.0, d: 1.5, h: 0.76, cx: -3.6, cz: -2.25, yaw: 0, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -2.45, cz: -3.15, yaw: 0, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -3.45, cz: -3.15, yaw: 0, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -4.45, cz: -3.15, yaw: 0, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -2.45, cz: -1.35, yaw: Math.PI, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -3.45, cz: -1.35, yaw: Math.PI, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -4.45, cz: -1.35, yaw: Math.PI, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -5.25, cz: -2.25, yaw: Math.PI / 2, box: true, y: 0.1 },
+  { file: 'dining-chair', lc: [0, 0.01405], w: 0.45, d: 0.45, h: 0.95, cx: -1.95, cz: -2.25, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  // Living: 3-seat couch back on the west wall face (-5.9), 2-seat
+  // back on the north wall face (4.4), entertainment center between
+  // them facing the 2-seat; curio back on the hall spine (face 0).
+  { file: 'couch-3seat', lc: [0, 0.0297], w: 2.3, d: 0.95, h: 0.92, cx: -5.425, cz: 2.55, yaw: Math.PI / 2, box: true, y: 0.1 },
+  { file: 'couch-2seat', lc: [0, 0.0297], w: 1.7, d: 0.95, h: 0.92, cx: -1.45, cz: 3.925, yaw: Math.PI, box: true, y: 0.1 },
+  { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 1.46, cx: -1.45, cz: 0.65, yaw: 0, box: true, y: 0.1 },
+  { file: 'curio-cabinet', lc: [0, 0.0119], w: 0.9, d: 0.4, h: 1.96, cx: -0.2, cz: -2.95, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  // Kitchen (east room): base runs on the south wall face (-4.4)
+  // and the east wall face (5.9), wall cabinets above them (their
+  // height is baked into the files; no colliders, like the mirror).
+  // The south run's west-end module is the junk drawer.
+  { file: 'kitchen-run-south', lc: [0.13125, 0.0203], w: 4.24, d: 0.65, h: 0.905, cx: 3.25, cz: -4.075, yaw: 0, box: true, y: 0.1 },
+  { file: 'kitchen-wall-south', lc: [0.10315, 0.01195], w: 3.32, d: 0.38, h: 0, cx: 2.79, cz: -4.21, yaw: 0, box: false, y: 0.1 },
+  { file: 'kitchen-run-east', lc: [0.13285, 0.0194], w: 4.29, d: 0.62, h: 1.16, cx: 5.59, cz: -2.255, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  { file: 'kitchen-wall-east', lc: [0.19375, 0.01195], w: 2.12, d: 0.38, h: 0, cx: 5.71, cz: -1.28, yaw: -Math.PI / 2, box: false, y: 0.1 },
 ];
 
 function extractTris(
@@ -636,7 +666,8 @@ export default function ModelWalk() {
               const group = new THREE.Group();
               group.add(piece.scene);
               group.rotation.y = spec.yaw;
-              group.position.set(spec.cx, FURN_Y, spec.cz);
+              const fy = spec.y ?? FURN_Y;
+              group.position.set(spec.cx, fy, spec.cz);
               scene.add(group);
               if (spec.box) {
                 const swap = Math.abs(Math.sin(spec.yaw)) > 0.5;
@@ -645,7 +676,7 @@ export default function ModelWalk() {
                 boxes.push({
                   minX: spec.cx - hw, maxX: spec.cx + hw,
                   minZ: spec.cz - hd, maxZ: spec.cz + hd,
-                  minY: FURN_Y, maxY: FURN_Y + spec.h,
+                  minY: fy, maxY: fy + spec.h,
                 });
               }
             } catch {
