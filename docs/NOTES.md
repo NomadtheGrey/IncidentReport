@@ -200,6 +200,23 @@ these, not the other way round.
   Screenshot-verified room by room. HUD zone names still predate
   Adam's geography (the "Kitchen" label sits over the dining
   room) — renames wait on his library scribbles.
+- **Upstairs leaves re-hung (2026-11-12, on WIP):** Adam spotted
+  doors poking through ceilings. Cause: the five upstairs leaves
+  were hung at floorY 2.5 — the slab's underside datum — while
+  the walking surface is the slab top, 2.6. Every upstairs leaf
+  sank 0.1 into the floor, its bottom edge sitting exactly in the
+  ceiling plane of the rooms below. All five now hang at 2.6 like
+  the basement leaf always did (−2.4). Screenshot-verified: the
+  bathroom leaf's foot meets the floor cleanly.
+- **The basement-stairs "missing enclosure" (Adam's report,
+  2026-11-12):** measured the markers export piece by piece in
+  Adam's own coords — the shaft's outer enclosure walls (both
+  sides, his z 2..6), the end wall, and the divider (z 2..4, ending
+  at the landing, z 4..6) are all IN the file and render. No piece
+  in the export crosses the basement landing. If Adam's Blockbench
+  project now shows a wall across that landing stretch, it changed
+  after the 13:50 export — a re-export is the fix, and DEV will
+  swap it in and prove the wall renders.
 
 ## The model pipeline
 

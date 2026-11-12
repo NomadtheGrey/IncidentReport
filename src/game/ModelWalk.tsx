@@ -58,12 +58,14 @@ interface ModelDoor {
 }
 
 const MODEL_DOORS: ModelDoor[] = [
-  // Upstairs (floor 2.5), openings 0.8 wide per the schedule.
-  { id: 'clarissa', cx: -1.07, cz: -0.89, floorY: 2.5, width: 0.8, wallAxis: 'x', insideSign: -1 },
-  { id: 'breanna', cx: -1.07, cz: 0.0, floorY: 2.5, width: 0.8, wallAxis: 'x', insideSign: -1 },
-  { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: -1 },
-  { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: 1 },
-  { id: 'darleens-closet', cx: 2.58, cz: 0.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: -1 },
+  // Upstairs (walking surface 2.6 — the slab top; the leaves used to
+  // hang at 2.5 and sank 0.1 into the floor, their bottom edges
+  // landing in the ceiling plane of the rooms below), openings 0.8.
+  { id: 'clarissa', cx: -1.07, cz: -0.89, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
+  { id: 'breanna', cx: -1.07, cz: 0.0, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
+  { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
+  { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: 1 },
+  { id: 'darleens-closet', cx: 2.58, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
   // Main floor: NO leaf in the hall<->stairwell opening — Adam's pin
   // (2026-11-12): that doorway stays open. The leaf that used to hang
   // here could also bar the only route to the basement stairs.
