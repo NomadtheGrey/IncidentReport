@@ -154,6 +154,52 @@ these, not the other way round.
   Models (2026-11-12): both characters verified — the intruder
   stitch (ch28-stitched.glb, 7 clips, 1.763 m) and the homeowner
   (Goodguy.glb, 9 clips, 1.760 m) are sound and metre-true.
+- **Markers model + stairs fixes (2026-11-12, on WIP):** Adam
+  re-exported the house (Drive, 283,791 B) — the BASEMENT divider
+  is now trimmed like the top one (ends at its landing's edge),
+  and the model carries 18 furniture LOCATION MARKERS (*Loc nodes
+  under a Locators group, main floor: kitchen cabinets + drawers
+  + sink east, dining table 3.0×1.5 with 8 chairs west, couches,
+  curio, entertainment center). House geometry otherwise
+  identical (1,616 tris, same bounds). The loaders (walkthrough +
+  exploded view) now hide the markers and exclude them from
+  collision. The hall<->stairwell door LEAF IS REMOVED (Adam's
+  pin; it also stood on the only route to the basement stairs).
+  Adam reported being blocked on the basement stairs in the #7
+  build: the flight itself drive-tests clean, tread by tread
+  (grounds −0.10…−0.70 stepping down the south lane), so the
+  block was the dark shaft + the leaf + lane confusion at the
+  up-flight's underside — the #7 shaft lighting, this leaf
+  removal, and the already-landing shaft-top light address it;
+  Adam's next walk is the verdict. The landing "gap" in his
+  snip is the trim itself: the divider box both walled the
+  landing and sealed the turn — one box, both jobs; the turn
+  being open IS the gap. Floors re-run (Models) now targets this
+  markers export; the locator map also says the kitchen is the
+  EAST main-floor room (SinkLoc/CabinetsLoc), so the provisional
+  linoleum belongs there, not in the west (dining) room.
+- **Floor colours IN (2026-11-12, on WIP):** Models' re-run swapped
+  in — flat floor materials by room on the markers model (hardwood
+  #9A7350 living areas + dining, linoleum #B5B8A4 upstairs bathroom
+  + the EAST main-floor kitchen, concrete #8E8E8C basement).
+  Verified in the renderer: kitchen floor reads pale, dining room
+  reads wood-brown; locator tris ride through identical (264) and
+  stay hidden. (An early probe script had a flipped axis and
+  briefly accused the file of the old west-linoleum mistake — the
+  rendered view cleared it; probes are advisory, the renderer is
+  the arbiter.)
+- **Main-floor furniture IN (2026-11-12, on WIP):** Models' batch
+  built from Adam's *Loc markers, placed on them (backs on the
+  measured wall faces): dining table 3.0×1.5 + 8 chairs ringed
+  facing it; couches (3-seat west wall, 2-seat north wall) +
+  entertainment center + curio in the living/entry area; kitchen
+  cabinet runs south + east with the sink centred on SinkLoc and
+  the JUNK DRAWER as the south run's west-end module (modelled
+  ajar), wall cabinets above both runs. The walkthrough's
+  furniture loader gained a per-piece floor height for these.
+  Screenshot-verified room by room. HUD zone names still predate
+  Adam's geography (the "Kitchen" label sits over the dining
+  room) — renames wait on his library scribbles.
 
 ## The model pipeline
 

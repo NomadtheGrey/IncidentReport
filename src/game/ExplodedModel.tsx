@@ -121,6 +121,11 @@ export default function ExplodedModel() {
           new THREE.Plane(new THREE.Vector3(0, -1, 0), hi),
         ];
         copy.traverse((o) => {
+          // Adam's furniture location markers are planning aids, not
+          // house — hide them here too.
+          if (o.name === 'Locators' || o.name.endsWith('Loc')) {
+            o.visible = false;
+          }
           const mesh = o as THREE.Mesh;
           if (mesh.isMesh) {
             const src = mesh.material as THREE.Material;
