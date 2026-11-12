@@ -59,13 +59,25 @@ these, not the other way round.
   Plan geometry (x/z) remains the reliable layer in the older
   exports.
 
-## Where it stands (2026-11-11)
+## Where it stands (2026-11-12)
 
 - Layout v3.1 is LIVE (merge #4):
   https://incidentreport.nomadthegrey71.workers.dev
   Adam's phone playtest is the pending acceptance.
 - v3.1's closet arrangement is known to be wrong against Adam's model
   (see open questions) — the correction rides on the model work below.
+- **AllFloors.gltf passed the Models sanity check (2026-11-11)** and
+  is IN THE GAME on WIP (commit 787df20): the title screen's "Walk
+  the model house" loads the model itself, with collision extracted
+  from its own triangles and 7 door leaves hung on the measured
+  openings (Clarissa's, Breanna's, Bathroom, Darleen's, Darleen's
+  closet, the hall-wall door, the basement room door — all lockable
+  from the inside). Fully drive-tested headlessly: a complete loop
+  (closets, both staircases both directions, kitchen/archway/living
+  circulation, basement room) with zero errors. NOT merged — the
+  live site still serves v3.1; merge waits on Adam's word.
+- The model was RE-BASED in AllFloors: y=0 is the ground. Walking
+  surfaces (slab tops): basement −2.4, main +0.1, upstairs +2.6.
 
 ## The model pipeline
 
@@ -74,15 +86,18 @@ these, not the other way round.
   buffers — accessor min/max are unreliable), consolidates it per the
   standards above, and returns a geometry spec plus feel numbers
   (stair slope, tightest headroom, hall and door widths).
-- Direction under consideration: load the .glb in-game as the house's
-  visual / layout source ("for the floor layout at least") instead of
-  hand-translating the model into code — one pipeline, paid once
-  (estimated at a couple of hours), after which a layout iteration is
-  a re-export and a file swap. Prototype not yet commissioned.
-  Collision, door leaves and locks, and items stay game-side either
-  way.
-- Current read in flight: `TopFloor.gltf` (Adam's latest rendition of
-  the top floor + staircase, 2026-11-11).
+- Direction TAKEN (2026-11-11/12): the .gltf is loaded in-game as
+  the house itself (see "Where it stands") — one pipeline, paid once,
+  and a layout iteration is now a re-export and a file swap.
+  Collision is extracted from the model's own triangles at load;
+  door leaves and locks stay game-side, hung on the measured
+  openings. Two load-side accommodations, both collision-only (the
+  model renders exactly as drawn):
+  - The stair divider boxes (below) have their collision trimmed at
+    the landings so the switchback turn can be made.
+  - The collision body stands on the lower surface when stepping
+    down, and is 1.6m tall — the model's tightest headroom (under
+    the closet wall's lower edge on the north lane) is ~1.7m.
 
 ## Working agreements
 
@@ -95,29 +110,51 @@ these, not the other way round.
   change is stated in plain words in chat first.
 - Every build request gets an honest guesstimate up front.
 
+## The model house (AllFloors, measured 2026-11-11)
+
+- The basement is NOT one open room in the model: a walled-off room
+  sits under the living room, entered through a 1.0m door; the only
+  stair-exit passage is at game x 1..2 in the shaft's north wall.
+- Main-floor circulation as drawn: a wall along game z 0.55 cuts the
+  hall strip, so west-side north↔south traffic goes through the
+  living room and the 2m kitchen archway; the kitchen is open to the
+  hall along the game x −1 line; the band mouth's two halves connect
+  only via the stairs or the full loop (a divider stub stands in the
+  mouth, kept as drawn).
+- Closets per the model: hall closet game x 1..2 (open from the
+  hall, no door), Darleen's closet 1×1 at game x 2..3 through
+  Doorway5. The walkthrough follows the model.
+- No garage in the model; no exterior doors cut yet (front would go
+  at game (0, 4.5), back at game (−3, −4.5)).
+
 ## Open questions
 
-- **Final top-floor closet arrangement** — awaiting the Models read of
-  `TopFloor.gltf`. The earlier model__2 read said: two compartments
-  over the stair band, both floored at upstairs height — the hall-side
-  one is the hall ("landing") closet with no door painted; the far
-  compartment is Darleen's, entered from her room through Dooway5.
-  v3.1 built them swapped, with no far compartment and no Dooway5.
+- **The divider crosses both landings (found 2026-11-11).** The
+  `StairsEnclosure` box (MainFloor group) is one piece running the
+  shaft's full 6m (Adam's z 0→6) on the divider line; across the
+  half-landing (z 4→6) it stands ~1.1m above the landing floor, so
+  as drawn the switchback turn is sealed. `BasementStairsEnclosure`
+  does the same one floor down. The walkthrough trims its collision
+  at the landings; whether Adam trims the boxes back to z 4 in a
+  future model pass is his call.
+- **Final top-floor closet arrangement** — ANSWERED by AllFloors
+  (see "The model house" above); v3.1's swapped build is superseded
+  wherever the model house is used.
 - **Floor-to-floor spacing** — Adam's standard is 2.5 (see model
-  standards); the game currently builds 3.0, and TopFloor.gltf's
-  stairs now match his 2.5. Open: does the game adopt 2.5? One
-  consequence needs Adam's eye: at 2.5, a closet floor over the
-  half-landing leaves only 1.25 above the landing — while his
-  description of the real closet ("bump only if well in excess of
-  six feet") implies ~1.9 of clearance at that spot, which neither
-  2.5 nor the game's 3.0 gives (the oversized model__2 stair drawing
-  did). Either the real house's floors are taller than his 2.5
-  standard, or the real closet doesn't extend over the landing. The
-  TopFloor read plus Adam's ruling settle it.
+  standards); the code-built house (v3.1) builds 3.0, but the model
+  walkthrough walks at the model's own 2.5 because the model
+  dictates it. Still open in principle for the code house; moot
+  wherever the model house is used.
 - **The reconfigure export** (`model__2___1.gltf`) shrank the house
   (far end z=6→4) and compressed the stairs (2m runs, 2×1 landing)
   against Adam's own pins, and left the closet strip overshooting the
   east wall. Treated as an iteration, not the layout.
+- **Stair-head doorway: leaf or open?** The model frames it like a
+  door; the walkthrough treats the arrival as an open mouth. Adam's
+  call. (The hall-wall door on the main floor got a leaf; also his
+  call to keep or remove.)
+- **Exterior doors** — not cut in the model. Adam cuts them in
+  Blockbench, or they get added at load; his choice.
 - **Next gameplay step** (proposed, not commissioned): the first
   pick-uppable object (bat or kitchen skillet), then the incident
   itself — stalker, bonk, 911 call, report card.
