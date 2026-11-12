@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import HouseGreybox from './game/HouseGreybox';
-import FirstPersonHouse from './game/FirstPersonHouse';
+import ExplodedModel from './game/ExplodedModel';
 import ModelWalk from './game/ModelWalk';
 
-type View = 'title' | 'house' | 'walk' | 'model';
+type View = 'title' | 'model' | 'exploded';
 
 export default function App() {
   const [view, setView] = useState<View>('title');
 
-  if (view === 'house' || view === 'walk' || view === 'model') {
+  if (view === 'model' || view === 'exploded') {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <div
@@ -22,14 +21,12 @@ export default function App() {
           }}
         >
           <strong style={{ letterSpacing: '0.15em' }}>
-            {view === 'walk' ? 'WALK THE HOUSE' : view === 'model' ? 'WALK THE MODEL' : 'THE HOUSE'}
+            {view === 'model' ? 'WALK THE MODEL' : 'THE HOUSE, EXPLODED'}
           </strong>
           <span style={{ opacity: 0.65, fontSize: '0.85rem' }}>
-            {view === 'walk'
-              ? 'First person. You start in the primary bedroom, upstairs.'
-              : view === 'model'
-                ? "First person inside Adam's Blockbench model — all three floors. You start in the primary bedroom, upstairs."
-                : 'Greybox — exploded view. Drag to orbit, scroll to zoom.'}
+            {view === 'model'
+              ? "First person inside Adam's Blockbench model — all three floors. You start in the primary bedroom, upstairs."
+              : "Adam's Blockbench model with the floors lifted apart. Drag to orbit, scroll to zoom."}
           </span>
           <button
             onClick={() => setView('title')}
@@ -39,7 +36,7 @@ export default function App() {
           </button>
         </div>
         <div style={{ flex: 1, minHeight: 0 }}>
-          {view === 'walk' ? <FirstPersonHouse /> : view === 'model' ? <ModelWalk /> : <HouseGreybox />}
+          {view === 'model' ? <ModelWalk /> : <ExplodedModel />}
         </div>
       </div>
     );
@@ -70,18 +67,6 @@ export default function App() {
       </div>
       <div style={{ display: 'flex', gap: '0.8rem', marginTop: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
         <button
-          onClick={() => setView('walk')}
-          style={{
-            padding: '0.7rem 1.5rem',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-            minHeight: 48,
-          }}
-        >
-          Walk the house
-        </button>
-        <button
           onClick={() => setView('model')}
           style={{
             padding: '0.7rem 1.5rem',
@@ -94,7 +79,7 @@ export default function App() {
           Walk the model house
         </button>
         <button
-          onClick={() => setView('house')}
+          onClick={() => setView('exploded')}
           style={{
             padding: '0.7rem 1.5rem',
             fontSize: '1rem',

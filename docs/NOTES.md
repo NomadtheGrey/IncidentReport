@@ -96,6 +96,33 @@ these, not the other way round.
   weakness under machine load (Adam's call, 2026-11-12: ship it to
   WIP without the suite). Adam's phone playtest after a merge is
   the acceptance.
+- **Merge #6 LIVE (2026-11-12):** the furnished upstairs merged
+  (PR #6, main 971ad13) and is serving — bundle index-B0knTNB9.js.
+  AUTO-BUILD ROOT CAUSE FOUND the same day (API-verified): the
+  build trigger's path_excludes contained a bare "*" alongside
+  the intended "*.md" entries, which excluded every file and
+  silently vetoed every push build. Adam removed the "*" in the
+  dashboard (verified via API); the next merge should build
+  itself. The "cause still open" note above is superseded.
+- **Adam's playtest of #6 (2026-11-12) found:** the mirror never
+  rendered and the bathtub read as sunk with its far lip missing —
+  one cause: the model's wall faces sit 0.1 inside the room
+  boundary lines (walls built into the rooms), and the furniture
+  backs were placed on the boundary lines, sinking pieces 0.1
+  into the walls. Fix queued: backs to the measured faces. The
+  basement stair shaft also reads near-black (sealed enclosure,
+  little game light) — a shaft light is queued. The models
+  themselves were praised; a colour pass (multi-colour per piece)
+  plus floor colours by room went to the Models chat.
+- **Title cleanup (2026-11-12, on WIP):** the "Walk the house"
+  button and the code-built house views are retired (Adam: its
+  layout "isn't even close"); the title now offers "Walk the model
+  house" and an "Exploded view" rebuilt on Adam's model itself —
+  the three floor bands lifted apart (src/game/ExplodedModel.tsx,
+  clipping-plane bands + orbit). src/game/house.ts,
+  FirstPersonHouse.tsx and HouseGreybox.tsx are deleted; the
+  layout data they carried is superseded by the model + the
+  LAYOUT docs.
 
 ## The model pipeline
 
