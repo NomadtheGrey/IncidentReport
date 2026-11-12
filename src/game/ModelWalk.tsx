@@ -135,6 +135,13 @@ interface Tri {
 // collider is the yaw-aligned footprint (all yaws are multiples of
 // 90°, so the footprint stays axis-aligned). floorY = 2.6 (upstairs
 // slab top) for every piece in this batch — bathroom + bedrooms.
+// Backs sit at the MEASURED wall faces, not the room boundary lines:
+// most walls are built 0.1 into the room (bathroom's south face is at
+// gz −4.4, not −4.5), and an earlier placement on the boundary lines
+// sank pieces 0.1 into the walls — the 0.03-thick mirror vanished
+// entirely and the tub lost its back rim into the wall (Adam's
+// playtest, 2026-11-12). Clarissa's dresser is the exception: that
+// wall extends the other way, so its back was already flush.
 interface FurnitureSpec {
   file: string;
   lc: [number, number];
@@ -145,24 +152,24 @@ interface FurnitureSpec {
 
 const FURN_Y = 2.6;
 const FURNITURE: FurnitureSpec[] = [
-  // Bathroom — fixtures along the south wall (gz −4.5), fronts north.
-  { file: 'vanity', lc: [0.028, 0.017], w: 0.93, d: 0.57, h: 1.06, cx: 0.62, cz: -4.215, yaw: 0, box: true },
-  { file: 'mirror', lc: [0.0255, 0.001], w: 0.82, d: 0.03, h: 0, cx: 0.62, cz: -4.485, yaw: 0, box: false },
-  { file: 'toilet', lc: [0.0155, 0.021], w: 0.53, d: 0.70, h: 0.83, cx: 1.62, cz: -4.15, yaw: 0, box: true },
-  { file: 'bathtub', lc: [0.053, 0.0235], w: 1.70, d: 0.75, h: 0.75, cx: 3.85, cz: -4.125, yaw: 0, box: true },
-  // Darleen's Room — king against the north wall, dresser on the east.
-  { file: 'bed-king', lc: [0.062, 0.068], w: 1.98, d: 2.18, h: 1.10, cx: 2.0, cz: 3.41, yaw: Math.PI, box: true },
-  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 0.72, cz: 4.26, yaw: Math.PI, box: true },
-  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 3.28, cz: 4.26, yaw: Math.PI, box: true },
-  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: 5.74, cz: 2.2, yaw: -Math.PI / 2, box: true },
-  // Clarissa's Room — full bed + nightstand on the south wall, dresser north.
-  { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -3.89, cz: -3.47, yaw: 0, box: true },
-  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -2.8, cz: -4.26, yaw: 0, box: true },
+  // Bathroom — fixtures along the south wall (face gz −4.4), fronts north.
+  { file: 'vanity', lc: [0.028, 0.017], w: 0.93, d: 0.57, h: 1.06, cx: 0.62, cz: -4.115, yaw: 0, box: true },
+  { file: 'mirror', lc: [0.0255, 0.001], w: 0.82, d: 0.03, h: 0, cx: 0.62, cz: -4.385, yaw: 0, box: false },
+  { file: 'toilet', lc: [0.0155, 0.021], w: 0.53, d: 0.70, h: 0.83, cx: 1.62, cz: -4.05, yaw: 0, box: true },
+  { file: 'bathtub', lc: [0.053, 0.0235], w: 1.70, d: 0.75, h: 0.75, cx: 3.85, cz: -4.025, yaw: 0, box: true },
+  // Darleen's Room — king against the north wall (face 4.4), dresser east (face 5.9).
+  { file: 'bed-king', lc: [0.062, 0.068], w: 1.98, d: 2.18, h: 1.10, cx: 2.0, cz: 3.31, yaw: Math.PI, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 0.72, cz: 4.16, yaw: Math.PI, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 3.28, cz: 4.16, yaw: Math.PI, box: true },
+  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: 5.64, cz: 2.2, yaw: -Math.PI / 2, box: true },
+  // Clarissa's Room — full bed + nightstand on the south wall (face −4.4), dresser north (already flush).
+  { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -3.89, cz: -3.37, yaw: 0, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -2.8, cz: -4.16, yaw: 0, box: true },
   { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.6, cz: -0.76, yaw: Math.PI, box: true },
-  // Breanna's Room — full bed on the west wall, dresser on the south.
-  { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -4.97, cz: 1.7, yaw: Math.PI / 2, box: true },
-  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -5.76, cz: 2.85, yaw: Math.PI / 2, box: true },
-  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.9, cz: -0.24, yaw: 0, box: true },
+  // Breanna's Room — full bed on the west wall (face −5.9), dresser on the south (face −0.4).
+  { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -4.87, cz: 1.7, yaw: Math.PI / 2, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -5.66, cz: 2.85, yaw: Math.PI / 2, box: true },
+  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.9, cz: -0.14, yaw: 0, box: true },
 ];
 
 function extractTris(root: THREE.Object3D): { floors: Tri[]; walls: Tri[] } {
@@ -323,11 +330,23 @@ export default function ModelWalk() {
     moon.position.set(-12, 20, 10);
     scene.add(moon);
     for (const [x, y, z] of [
-      [-3, 2.3, 0], [3.5, 2.3, -3], // main floor
+      [-3, 2.3, 0], [3.5, 2.3, -3], [3.2, 2.2, -0.5], // main floor + its shaft top
       [0.7, 4.8, 2], [-3.5, 4.8, 0], [3, 4.8, -3], // upstairs
-      [0, -0.4, 0], [-3.5, -0.4, 2.5], // basement
     ] as const) {
       const p = new THREE.PointLight(0xffd9a0, 12, 11, 1.8);
+      p.position.set(x, y, z);
+      scene.add(p);
+    }
+    // Basement, brighter and with its own shaft light: the sealed
+    // stair enclosure admitted almost no light (the flights read
+    // near-black) and Adam could not see the basement floor at all
+    // (playtest, 2026-11-12).
+    for (const [x, y, z] of [
+      [0, -0.4, 0], [-3.5, -0.4, 2.5], // hall side + basement room
+      [3.2, -0.5, -0.5], // inside the stair shaft, over the landing
+      [3.5, -0.5, -2.5], // open basement, east side
+    ] as const) {
+      const p = new THREE.PointLight(0xffd9a0, 20, 13, 1.8);
       p.position.set(x, y, z);
       scene.add(p);
     }
