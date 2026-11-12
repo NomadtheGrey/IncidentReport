@@ -126,6 +126,45 @@ interface Tri {
   ny: number;
 }
 
+// ---- Furniture: Models chat's trappings batch 1, placed 2026-11-12 ----
+// Pieces are the Models chat's .gltf exports (same convention as the
+// house: values are metres / 16, scale 16 restores them). Each piece
+// is built on the floor with its back at local z = 0 and its front
+// toward +z; lc = the piece's local centre in FILE units, w/d/h its
+// size in metres. Placement is by centre: yaw turns the piece, the
+// collider is the yaw-aligned footprint (all yaws are multiples of
+// 90°, so the footprint stays axis-aligned). floorY = 2.6 (upstairs
+// slab top) for every piece in this batch — bathroom + bedrooms.
+interface FurnitureSpec {
+  file: string;
+  lc: [number, number];
+  w: number; d: number; h: number;
+  cx: number; cz: number; yaw: number;
+  box: boolean;
+}
+
+const FURN_Y = 2.6;
+const FURNITURE: FurnitureSpec[] = [
+  // Bathroom — fixtures along the south wall (gz −4.5), fronts north.
+  { file: 'vanity', lc: [0.028, 0.017], w: 0.93, d: 0.57, h: 1.06, cx: 0.62, cz: -4.215, yaw: 0, box: true },
+  { file: 'mirror', lc: [0.0255, 0.001], w: 0.82, d: 0.03, h: 0, cx: 0.62, cz: -4.485, yaw: 0, box: false },
+  { file: 'toilet', lc: [0.0155, 0.021], w: 0.53, d: 0.70, h: 0.83, cx: 1.62, cz: -4.15, yaw: 0, box: true },
+  { file: 'bathtub', lc: [0.053, 0.0235], w: 1.70, d: 0.75, h: 0.75, cx: 3.85, cz: -4.125, yaw: 0, box: true },
+  // Darleen's Room — king against the north wall, dresser on the east.
+  { file: 'bed-king', lc: [0.062, 0.068], w: 1.98, d: 2.18, h: 1.10, cx: 2.0, cz: 3.41, yaw: Math.PI, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 0.72, cz: 4.26, yaw: Math.PI, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 3.28, cz: 4.26, yaw: Math.PI, box: true },
+  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: 5.74, cz: 2.2, yaw: -Math.PI / 2, box: true },
+  // Clarissa's Room — full bed + nightstand on the south wall, dresser north.
+  { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -3.89, cz: -3.47, yaw: 0, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -2.8, cz: -4.26, yaw: 0, box: true },
+  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.6, cz: -0.76, yaw: Math.PI, box: true },
+  // Breanna's Room — full bed on the west wall, dresser on the south.
+  { file: 'bed-full', lc: [0.0445, 0.0645], w: 1.42, d: 2.06, h: 0.99, cx: -4.97, cz: 1.7, yaw: Math.PI / 2, box: true },
+  { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: -5.76, cz: 2.85, yaw: Math.PI / 2, box: true },
+  { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.9, cz: -0.24, yaw: 0, box: true },
+];
+
 function extractTris(root: THREE.Object3D): { floors: Tri[]; walls: Tri[] } {
   const floors: Tri[] = [];
   const walls: Tri[] = [];
@@ -253,7 +292,7 @@ export default function ModelWalk() {
     yaw: -Math.PI / 2, // face east, toward Darleen's door
     pitch: 0,
     stickVec: { x: 0, y: 0, mag: 0 },
-    pos: new THREE.Vector3(3, 2.5, 2.5),
+    pos: new THREE.Vector3(4.6, 2.5, 1.6),
     ground: 2.5,
   });
   const stickPointerRef = useRef<number | null>(null);
@@ -525,7 +564,7 @@ export default function ModelWalk() {
     const loader = new GLTFLoader();
     loader
       .loadAsync(`${import.meta.env.BASE_URL}models/all-floors.gltf`)
-      .then((gltf) => {
+      .then(async (gltf) => {
         if (disposed) return;
         const holder = new THREE.Group();
         // game = (hisZ, hisY, hisX + 0.5) at x16: scale first (with the
@@ -540,6 +579,49 @@ export default function ModelWalk() {
         floors = tris.floors;
         walls = tris.walls;
         buildLeaves();
+        // Furniture: the pieces' own axes are already game-shaped
+        // (x across, y up, z toward the front), so each one is just
+        // scaled x16, centred on its placement, and yawed. A piece
+        // that fails to load is skipped, never fatal.
+        await Promise.all(
+          FURNITURE.map(async (spec) => {
+            try {
+              const piece = await loader.loadAsync(
+                `${import.meta.env.BASE_URL}models/furniture/${spec.file}.gltf`,
+              );
+              if (disposed) return;
+              piece.scene.traverse((o) => {
+                const mesh = o as THREE.Mesh;
+                if (mesh.isMesh) {
+                  const mat = mesh.material as THREE.Material | THREE.Material[];
+                  (Array.isArray(mat) ? mat : [mat]).forEach((m) => {
+                    (m as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+                  });
+                }
+              });
+              piece.scene.scale.set(16, 16, 16);
+              piece.scene.position.set(-spec.lc[0] * 16, 0, -spec.lc[1] * 16);
+              const group = new THREE.Group();
+              group.add(piece.scene);
+              group.rotation.y = spec.yaw;
+              group.position.set(spec.cx, FURN_Y, spec.cz);
+              scene.add(group);
+              if (spec.box) {
+                const swap = Math.abs(Math.sin(spec.yaw)) > 0.5;
+                const hw = (swap ? spec.d : spec.w) / 2;
+                const hd = (swap ? spec.w : spec.d) / 2;
+                boxes.push({
+                  minX: spec.cx - hw, maxX: spec.cx + hw,
+                  minZ: spec.cz - hd, maxZ: spec.cz + hd,
+                  minY: FURN_Y, maxY: FURN_Y + spec.h,
+                });
+              }
+            } catch {
+              // one missing piece never blocks the walkthrough
+            }
+          }),
+        );
+        if (disposed) return;
         input.ground = meshGround(input.pos.x, input.pos.z, input.ground);
         setReady(true);
         last = performance.now();
