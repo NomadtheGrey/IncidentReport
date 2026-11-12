@@ -154,6 +154,30 @@ these, not the other way round.
   Models (2026-11-12): both characters verified — the intruder
   stitch (ch28-stitched.glb, 7 clips, 1.763 m) and the homeowner
   (Goodguy.glb, 9 clips, 1.760 m) are sound and metre-true.
+- **Markers model + stairs fixes (2026-11-12, on WIP):** Adam
+  re-exported the house (Drive, 283,791 B) — the BASEMENT divider
+  is now trimmed like the top one (ends at its landing's edge),
+  and the model carries 18 furniture LOCATION MARKERS (*Loc nodes
+  under a Locators group, main floor: kitchen cabinets + drawers
+  + sink east, dining table 3.0×1.5 with 8 chairs west, couches,
+  curio, entertainment center). House geometry otherwise
+  identical (1,616 tris, same bounds). The loaders (walkthrough +
+  exploded view) now hide the markers and exclude them from
+  collision. The hall<->stairwell door LEAF IS REMOVED (Adam's
+  pin; it also stood on the only route to the basement stairs).
+  Adam reported being blocked on the basement stairs in the #7
+  build: the flight itself drive-tests clean, tread by tread
+  (grounds −0.10…−0.70 stepping down the south lane), so the
+  block was the dark shaft + the leaf + lane confusion at the
+  up-flight's underside — the #7 shaft lighting, this leaf
+  removal, and the already-landing shaft-top light address it;
+  Adam's next walk is the verdict. The landing "gap" in his
+  snip is the trim itself: the divider box both walled the
+  landing and sealed the turn — one box, both jobs; the turn
+  being open IS the gap. Floors re-run (Models) now targets this
+  markers export; the locator map also says the kitchen is the
+  EAST main-floor room (SinkLoc/CabinetsLoc), so the provisional
+  linoleum belongs there, not in the west (dining) room.
 
 ## The model pipeline
 

@@ -64,10 +64,9 @@ const MODEL_DOORS: ModelDoor[] = [
   { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: -1 },
   { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: 1 },
   { id: 'darleens-closet', cx: 2.58, cz: 0.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: -1 },
-  // Main floor (walking surface +0.1). The door in the wall that runs
-  // down the game's hall spine in the model — 1.0 wide, leaf per the
-  // schedule; its lock side is set to the band side.
-  { id: 'hall-wall', cx: 0, cz: -1.0, floorY: 0.1, width: 1.0, wallAxis: 'x', insideSign: 1 },
+  // Main floor: NO leaf in the hall<->stairwell opening — Adam's pin
+  // (2026-11-12): that doorway stays open. The leaf that used to hang
+  // here could also bar the only route to the basement stairs.
   // Basement (floor -2.4). The walled-off room's door, 1.0 wide.
   { id: 'basement-room', cx: -1.1, cz: 3.0, floorY: -2.4, width: 1.0, wallAxis: 'x', insideSign: -1 },
 ];
@@ -172,7 +171,10 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'dresser', lc: [0.0465, 0.0155], w: 1.52, d: 0.52, h: 0.90, cx: -3.9, cz: -0.14, yaw: 0, box: true },
 ];
 
-function extractTris(root: THREE.Object3D): { floors: Tri[]; walls: Tri[] } {
+function extractTris(
+  root: THREE.Object3D,
+  skip?: Set<THREE.Object3D>,
+): { floors: Tri[]; walls: Tri[] } {
   const floors: Tri[] = [];
   const walls: Tri[] = [];
   root.updateMatrixWorld(true);
@@ -184,6 +186,7 @@ function extractTris(root: THREE.Object3D): { floors: Tri[]; walls: Tri[] } {
   const n = new THREE.Vector3();
   root.traverse((obj) => {
     if (!(obj instanceof THREE.Mesh)) return;
+    if (skip?.has(obj)) return;
     const geo = obj.geometry as THREE.BufferGeometry;
     const pos = geo.getAttribute('position');
     if (!pos) return;
@@ -594,7 +597,17 @@ export default function ModelWalk() {
         holder.position.set(0, 0, 0.5);
         holder.add(gltf.scene);
         scene.add(holder);
-        const tris = extractTris(holder);
+        // Adam's furniture location markers (the *Loc nodes under the
+        // Locators group, added to the model 2026-11-12) are planning
+        // aids, not house: hide them and keep them out of collision.
+        const locators = new Set<THREE.Object3D>();
+        gltf.scene.traverse((obj) => {
+          if (obj.name === 'Locators' || obj.name.endsWith('Loc')) {
+            obj.visible = false;
+            obj.traverse((sub) => locators.add(sub));
+          }
+        });
+        const tris = extractTris(holder, locators);
         floors = tris.floors;
         walls = tris.walls;
         buildLeaves();
