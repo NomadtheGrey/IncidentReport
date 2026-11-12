@@ -74,10 +74,28 @@ these, not the other way round.
   closet, the hall-wall door, the basement room door — all lockable
   from the inside). Fully drive-tested headlessly: a complete loop
   (closets, both staircases both directions, kitchen/archway/living
-  circulation, basement room) with zero errors. NOT merged — the
-  live site still serves v3.1; merge waits on Adam's word.
+  circulation, basement room) with zero errors. MERGED 2026-11-12
+  (merge #5, main 8244983) and LIVE — bundle index-Cm3gTlqc.js,
+  model asset serving. NOTE: the merge did NOT auto-build (Adam's
+  GitHub-App repo selection wasn't sufficient); the build was
+  triggered manually, as with #4 — auto-build cause still open.
 - The model was RE-BASED in AllFloors: y=0 is the ground. Walking
   surfaces (slab tops): basement −2.4, main +0.1, upstairs +2.6.
+- **The upstairs is FURNISHED on WIP (2026-11-12, not yet merged):**
+  Models' trappings batch 1 (public/models/furniture/) is placed in
+  the model walkthrough — bathroom set (vanity, mirror, toilet,
+  bathtub) along the south wall; Darleen's king bed + two
+  nightstands + dresser; full bed + nightstand + dresser in each of
+  Clarissa's and Breanna's rooms. Each piece carries a footprint
+  collider (the mirror is visual only). The walkthrough spawn moved
+  to (4.6, 1.6) so the player doesn't start inside the king bed.
+  Verified by targeted drives: every piece loads (20 colliders = 7
+  doors + 13 pieces), renders in place, and blocks at its face
+  (beds and fixtures plateau-tested). The full-route robot suite
+  was NOT re-run on this build — it wedges on its own stale-key
+  weakness under machine load (Adam's call, 2026-11-12: ship it to
+  WIP without the suite). Adam's phone playtest after a merge is
+  the acceptance.
 
 ## The model pipeline
 
@@ -151,10 +169,40 @@ these, not the other way round.
   (far end z=6→4) and compressed the stairs (2m runs, 2×1 landing)
   against Adam's own pins, and left the closet strip overshooting the
   east wall. Treated as an iteration, not the layout.
-- **Stair-head doorway: leaf or open?** The model frames it like a
-  door; the walkthrough treats the arrival as an open mouth. Adam's
-  call. (The hall-wall door on the main floor got a leaf; also his
-  call to keep or remove.)
+- **Door pins (Adam, 2026-11-12)**: NO doors at the stairs (stair-
+  head doorway and both mouths stay open), NO door in the 2m
+  archway, and NO door in the 1.0m hall↔stairwell opening — the
+  leaf hung there in the walkthrough comes OUT in the next build.
+  There IS a door at the basement stairs (Adam: "so people won't
+  fall downstairs without opening the door first") — RESOLVED
+  2026-11-12: the door sits at the TOP of the basement stairs and
+  is accessed from the kitchen. The two stacked staircases do NOT
+  connect directly (Adam: stacked because it's the natural,
+  space-saving arrangement, but the main floor separates them) —
+  in the walkthrough the next build puts a leaf across the
+  basement flight's entry, where it currently flows open.
+- **Texture pass (Adam, 2026-11-12 — planned, after his room
+  scribbles)**: walls, floors, ceilings get real textures for
+  flavour. Floors: HARDWOOD SLATS in most rooms, with throw rugs;
+  LINOLEUM TILES in bathrooms and the kitchen. Carpet exists
+  somewhere (his carpet↔linoleum floor-divider piece) — which
+  rooms are carpet is still to pin. LINOLEUM RULE (Adam,
+  2026-11-12): linoleum never ends bare — every edge gets a
+  transition strip/divider, because a bare edge gets torn. The
+  divider piece belongs at every linoleum boundary, not just
+  against carpet. Room identity drives the
+  floor assignment, so this waits on the geography settling.
+- **Main-floor geography (Adam's walk, 2026-11-12 — his labels
+  govern; read-back sent, correction pending)**: coming down from
+  upstairs you land in the LIVING ROOM (east side); through the
+  wide doorway is the DINING ROOM; through that, the KITCHEN;
+  the basement stairs sit in front of the kitchen doorway. The
+  walkthrough's HUD labels predate this (they call the east room
+  "Dining Room" and the north-west room "Living Room") and get
+  renamed to Adam's on his confirmation. He also says the stair
+  dividing wall "should really be a banister" (scope vs the solid
+  separator pin being confirmed) and plans to model a small floor
+  divider piece marking where carpet meets linoleum.
 - **Exterior doors** — not cut in the model. Adam cuts them in
   Blockbench, or they get added at load; his choice.
 - **Next gameplay step** (proposed, not commissioned): the first
