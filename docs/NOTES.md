@@ -217,6 +217,11 @@ these, not the other way round.
   project now shows a wall across that landing stretch, it changed
   after the 13:50 export — a re-export is the fix, and DEV will
   swap it in and prove the wall renders.
+- **Floor lamp placed (2026-11-12, on WIP):** Adam remembered the
+  lamp after the furniture batch — the living room's floor lamp
+  (from the objects batch) now stands in the corner at the
+  3-seat couch's north end. It's the extension cord's home: the
+  cord is pinned as plugged into this lamp when item logic lands.
 
 ## The model pipeline
 

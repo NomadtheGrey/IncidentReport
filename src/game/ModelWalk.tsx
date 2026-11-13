@@ -193,6 +193,10 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'couch-2seat', lc: [0, 0.0297], w: 1.7, d: 0.95, h: 0.92, cx: -1.45, cz: 3.925, yaw: Math.PI, box: true, y: 0.1 },
   { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 1.46, cx: -1.45, cz: 0.65, yaw: 0, box: true, y: 0.1 },
   { file: 'curio-cabinet', lc: [0, 0.0119], w: 0.9, d: 0.4, h: 1.96, cx: -0.2, cz: -2.95, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  // The floor lamp (Adam remembered it after the batch): in the
+  // corner at the 3-seat couch's north end. The extension cord's
+  // home is plugged into this lamp (item logic comes later).
+  { file: 'floor-lamp', lc: [0, 0], w: 0.36, d: 0.36, h: 1.62, cx: -5.55, cz: 4.05, yaw: 0, box: true, y: 0.1 },
   // Kitchen (east room): base runs on the south wall face (-4.4)
   // and the east wall face (5.9), wall cabinets above them (their
   // height is baked into the files; no colliders, like the mirror).
