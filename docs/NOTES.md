@@ -408,3 +408,13 @@ these, not the other way round.
   what the view is centred on — items, furniture, fixtures and
   doors (with their locked state) — picked by a centre ray
   against spec-derived boxes, hidden by any wall in between.
+- **Corridor-pass model swap (2026-11-13, Adam's export)**: his
+  new AllFloors is in — floor colours re-applied with the
+  standing colour pass, all 18 locators intact. What changed:
+  Darleen's closet is DELETED (doorway sealed; its leaf, zone
+  and door name are removed from the code) and the basement
+  flight enclosure was rebuilt. Main-floor walls are unchanged;
+  the upstairs hall is unchanged this pass (narrow doorways are
+  Adam's next pass, by his word). Verified: stair profile probe
+  descends both lanes tread by tread to the basement floor, the
+  Basement Room and its doorway stand, kitchen untouched.
