@@ -418,3 +418,42 @@ these, not the other way round.
   Adam's next pass, by his word). Verified: stair profile probe
   descends both lanes tread by tread to the basement floor, the
   Basement Room and its doorway stand, kitchen untouched.
+- **Lighting + pot fix (2026-11-13, Adam's playtest)**: NOT two
+  models — Adam's doubled-walls report bisected three ways: the
+  triangle census finds one house (a few dozen exact-duplicate
+  floor-seam triangles in the basement, present in his older
+  export too), the walkthrough loads the model exactly once, and
+  a bare render of the file alone (flat light, nothing else in
+  the scene) shows a single clean switchback. What he was seeing
+  is the whole three-storey shaft at once — both flights,
+  landings and dividers stacked in one open band, where
+  Blockbench shows him one floor at a time — flattened into
+  ghost layers by the lighting: eleven point lights (12 / 20
+  intensity, physical falloff) clipped every nearby surface to
+  the same white. Fix: ACES filmic tone mapping (exposure 1.05)
+  and the point lights cut to 5.5 (main/upstairs) and 9
+  (basement, which still needs the extra reach). The pot also
+  really was levitating: it sat at the range piece's 0.92 max
+  height, but the cooktop plate is at 0.81 in the piece (burners
+  0.822) — the pot now sits at 0.92 world, on the burners.
+- **De-dupe model swap (2026-11-13, Adam's export)**: his cleaned
+  AllFloors is in — colours re-applied (the colour pass's bathroom
+  zone follows the moved wall). The duplicate-wall census is
+  nearly clean: the shaft's doubled StairsEnclosure/SWall pairs
+  are gone and the upstairs exact-copy wall is single again. TWO
+  exact-copy pieces remain (flagged to Adam): a main-floor wall
+  metre and a 2 m lintel strip, both on the west cross-wall line
+  (his x 0.00..0.10). This pass also WIDENED the stair band: the
+  shaft's outer walls moved 0.2 m out on both sides (game z
+  -1.65 / +0.75 lines), upstairs bathroom and master walls moved
+  with them, and every upstairs door opening was widened to
+  ~0.9 m. The code followed the geometry: all four upstairs
+  leaves re-hung on the measured gaps (bathroom cz -1.65, master
+  cz 0.75, Bedroom 1 cz -1.00 w 0.9, Bedroom 2 cz 0.13 w 0.95),
+  five switch plates re-seated on the moved walls, and the
+  Stairs/Bathroom/Master/Hall zones re-edged. Verified: stair
+  profile probe descends both lanes to the basement floor,
+  Basement Room doorway stands, doors sit in their openings.
+  Note: the flights themselves are still 1.0 m wide in the now
+  1.1 m lanes — a thin slot runs beside each flight; Adam's
+  call whether the flights widen too.

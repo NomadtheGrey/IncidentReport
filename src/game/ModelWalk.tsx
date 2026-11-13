@@ -62,11 +62,16 @@ interface ModelDoor {
 const MODEL_DOORS: ModelDoor[] = [
   // Upstairs (walking surface 2.6 — the slab top; the leaves used to
   // hang at 2.5 and sank 0.1 into the floor, their bottom edges
-  // landing in the ceiling plane of the rooms below), openings 0.8.
-  { id: 'clarissa', cx: -1.07, cz: -0.89, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
-  { id: 'breanna', cx: -1.07, cz: 0.0, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
-  { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
-  { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: 1 },
+  // landing in the ceiling plane of the rooms below).
+  // OPENINGS RE-MEASURED on Adam's de-dupe export (2026-11-13):
+  // he widened every upstairs opening to ~0.9 and the bathroom /
+  // master walls moved with the stair-band widening (bathroom
+  // wall z -1.5 -> -1.65, master wall z 0.5 -> 0.75). Centres and
+  // widths below are the measured gaps, not the old schedule.
+  { id: 'clarissa', cx: -1.07, cz: -1.0, floorY: 2.6, width: 0.9, wallAxis: 'x', insideSign: -1 },
+  { id: 'breanna', cx: -1.07, cz: 0.13, floorY: 2.6, width: 0.95, wallAxis: 'x', insideSign: -1 },
+  { id: 'bathroom', cx: 0.5, cz: -1.65, floorY: 2.6, width: 0.9, wallAxis: 'z', insideSign: -1 },
+  { id: 'darleen', cx: 0.48, cz: 0.75, floorY: 2.6, width: 0.85, wallAxis: 'z', insideSign: 1 },
   // Darleen's closet is DELETED (Adam, 2026-11-13): the doorway
   // is sealed in his current model and the space is stairwell
   // again — no leaf, no zone.
@@ -90,11 +95,11 @@ const ZONES: Zone[] = [
   // Adam's ruling (2026-11-13): Master Bedroom, Bedroom 1, 2.
   { name: 'Bedroom 1', y: 2.5, x: [-6, -1], z: [-4.5, -0.5] },
   { name: 'Bedroom 2', y: 2.5, x: [-6, -1], z: [-0.5, 4.5] },
-  { name: 'Hall', y: 2.5, x: [-1, 1], z: [-1.5, 0.5] },
+  { name: 'Hall', y: 2.5, x: [-1, 1], z: [-1.7, 0.7] },
   { name: 'Hall Closet', y: 2.5, x: [1, 2], z: [-0.5, 0.5] },
-  { name: 'Stairs', y: 2.5, x: [1, 6], z: [-1.5, 0.5] },
-  { name: 'Bathroom', y: 2.5, x: [-1, 6], z: [-4.5, -1.5] },
-  { name: 'Master Bedroom', y: 2.5, x: [-1, 6], z: [0.5, 4.5] },
+  { name: 'Stairs', y: 2.5, x: [1, 6], z: [-1.7, 0.8] },
+  { name: 'Bathroom', y: 2.5, x: [-1, 6], z: [-4.5, -1.7] },
+  { name: 'Master Bedroom', y: 2.5, x: [-1, 6], z: [0.7, 4.5] },
   // Main floor (floor plane 0.1). Room uses follow Adam's own
   // markers: kitchen east, dining west-south, living west-north.
   // ('East Room' is a placeholder — Adam still owes that room's
@@ -102,7 +107,7 @@ const ZONES: Zone[] = [
   { name: 'Dining Room', y: 0.1, x: [-6, -1], z: [-4.5, 0.5] },
   { name: 'Living Room', y: 0.1, x: [-6, -1], z: [0.5, 4.5] },
   { name: 'Hall / Entry', y: 0.1, x: [-1, 1], z: [-4.5, 4.5] },
-  { name: 'Stairs', y: 0.1, x: [1, 6], z: [-1.5, 0.5] },
+  { name: 'Stairs', y: 0.1, x: [1, 6], z: [-1.7, 0.8] },
   { name: 'Kitchen', y: 0.1, x: [1, 6], z: [-4.5, 0.5] },
   { name: 'East Room', y: 0.1, x: [1, 6], z: [0.5, 4.5] },
   // Basement (floor plane -2.4).
@@ -231,7 +236,11 @@ const FURNITURE: FurnitureSpec[] = [
   // hammer in the ajar junk drawer, tape beside it, extinguisher
   // standing at the run's end.
   { file: 'skillet', lc: [0, 0.00525], w: 0.35, d: 0.51, h: 0.06, cx: 2.6, cz: -4.09, yaw: 0.5, box: false, y: 1.01 },
-  { file: 'pot', lc: [0, 0], w: 0.35, d: 0.32, h: 0.27, cx: 4.37, cz: -4.07, yaw: 0, box: false, y: 1.02 },
+  // Pot y: the range's cooktop plate sits at 0.81 in the piece (the
+  // burners at 0.822) — NOT at the piece's 0.92 max, which is a small
+  // raised lip. Seating the pot at 0.92-of-the-piece left it floating
+  // ~10 cm over the burners (Adam's playtest, 2026-11-13).
+  { file: 'pot', lc: [0, 0], w: 0.35, d: 0.32, h: 0.27, cx: 4.37, cz: -4.07, yaw: 0, box: false, y: 0.92 },
   { file: 'claw-hammer', lc: [0, 0.01015], w: 0.05, d: 0.33, h: 0.07, cx: 1.43, cz: -3.8, yaw: 0, box: false, y: 0.8 },
   { file: 'duct-tape', lc: [0, 0.003], w: 0.15, d: 0.24, h: 0.05, cx: 1.9, cz: -4.09, yaw: 0.4, box: false, y: 1.01 },
   { file: 'fire-extinguisher', lc: [0, 0], w: 0.18, d: 0.16, h: 0.51, cx: 5.02, cz: -4.08, yaw: 0, box: false, y: 1.01 },
@@ -283,11 +292,14 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'thermostat', lc: [0, 0.00105], w: 0.14, d: 0.03, h: 0, cx: 0.12, cz: 0.15, yaw: Math.PI / 2, box: false, y: 1.5 },
   // Light switches by the doors (plate centre 1.2 m up, on the
   // room-side face beside each opening).
-  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: -1.61, yaw: Math.PI, box: false, y: 3.8 },
-  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: 0.61, yaw: 0, box: false, y: 3.8 },
-  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: -0.3, yaw: -Math.PI / 2, box: false, y: 3.8 },
-  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: 0.55, yaw: -Math.PI / 2, box: false, y: 3.8 },
-  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 3.12, cz: 0.61, yaw: 0, box: false, y: 3.8 },
+  // (Plate positions re-seated on the de-dupe export's moved
+  // walls, 2026-11-13: bathroom wall face now z -1.7, master
+  // wall face z 0.8, bedroom-door openings shifted.)
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: -1.71, yaw: Math.PI, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: 0.81, yaw: 0, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: -0.45, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: 0.7, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 3.12, cz: 0.81, yaw: 0, box: false, y: 3.8 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.21, cz: 3.55, yaw: -Math.PI / 2, box: false, y: -1.2 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.61, yaw: 0, box: false, y: 1.3 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.49, yaw: Math.PI, box: false, y: 1.3 },
@@ -585,6 +597,14 @@ export default function ModelWalk() {
     camera.rotation.order = 'YXZ';
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // ACES tone mapping: the point lights run hot at close range
+    // (physical falloff), and without roll-off every surface near a
+    // light clipped to the same flat white — the stair shaft read as
+    // doubled ghost walls and the kitchen's east end blew out
+    // entirely (Adam's playtest, 2026-11-13). ACES rolls the
+    // highlights off instead of clipping them.
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.05;
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     renderer.domElement.style.touchAction = 'none';
@@ -598,7 +618,7 @@ export default function ModelWalk() {
       [-3, 2.3, 0], [3.5, 2.3, -3], [3.2, 2.2, -0.5], // main floor + its shaft top
       [0.7, 4.8, 2], [-3.5, 4.8, 0], [3, 4.8, -3], // upstairs
     ] as const) {
-      const p = new THREE.PointLight(0xffd9a0, 12, 11, 1.8);
+      const p = new THREE.PointLight(0xffd9a0, 5.5, 11, 1.8);
       p.position.set(x, y, z);
       scene.add(p);
     }
@@ -614,7 +634,7 @@ export default function ModelWalk() {
       // (playtest, 2026-11-13)
       [3.5, -0.5, -2.5], // open basement, east side
     ] as const) {
-      const p = new THREE.PointLight(0xffd9a0, 20, 13, 1.8);
+      const p = new THREE.PointLight(0xffd9a0, 9, 13, 1.8);
       p.position.set(x, y, z);
       scene.add(p);
     }
