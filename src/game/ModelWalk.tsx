@@ -232,6 +232,63 @@ const FURNITURE: FurnitureSpec[] = [
   // The shovel hangs in the basement stairs (Adam's pin): leaning
   // on the landing's east wall, handle up.
   { file: 'shovel', lc: [0, 0.0325], w: 0.22, d: 1.3, h: 0.07, cx: 5.48, cz: -1.0, yaw: Math.PI / 2, box: false, y: -1.1, lean: -1.31 },
+  // ---- The believability set (Models batch, 2026-11-12). Adam
+  // approved the list; DEV places what the measured model makes
+  // knowable. Held for Adam's markers: washer, dryer (laundry
+  // location unknown), vent covers + curtains (window positions).
+  // Ceiling fans at room centres (origin at the ceiling plane;
+  // the model hangs below it).
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3, cz: 2.5, yaw: 0, box: false, y: 2.5 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3, cz: -2, yaw: 0, box: false, y: 2.5 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: 2.5, cz: 2.5, yaw: 0, box: false, y: 5.0 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3.5, cz: -2.5, yaw: 0, box: false, y: 5.0 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3.5, cz: 2.5, yaw: 0, box: false, y: 5.0 },
+  // Smoke detectors (origin at the ceiling, body below).
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0, cz: -0.5, yaw: 0, box: false, y: 5.0 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -0.5, yaw: 0, box: false, y: 2.5 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 4, cz: -3, yaw: 0, box: false, y: 2.5 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -2, yaw: 0, box: false, y: 0.0 },
+  // Kitchen appliances. NOTE: the south run has no range gap —
+  // the range sets into the run (its body swallows a counter
+  // stretch; fronts and cooktop sit flush/proud as a real range
+  // does). The fridge takes the run's west end (DEV's call, told
+  // to Adam; one marker moves it if the house says otherwise).
+  { file: 'range', lc: [0, 0.0206], w: 0.76, d: 0.66, h: 0.92, cx: 4.37, cz: -4.07, yaw: 0, box: true, y: 0.1 },
+  { file: 'fridge', lc: [0, 0.02765], w: 0.91, d: 0.885, h: 1.8, cx: 0.6, cz: -3.96, yaw: 0, box: true, y: 0.1 },
+  // Basement plant: furnace + water heater on the north wall of
+  // the open area, clear of the walled room and the stairs.
+  { file: 'furnace', lc: [0, 0.0233], w: 0.7, d: 0.746, h: 1.6, cx: 2.5, cz: 4.03, yaw: Math.PI, box: true, y: -2.4 },
+  { file: 'water-heater', lc: [0, 0], w: 0.82, d: 0.82, h: 1.61, cx: 3.55, cz: 3.98, yaw: 0, box: true, y: -2.4 },
+  // Towel rail on the bathroom's south wall, west of the vanity.
+  { file: 'towel-rail', lc: [0, 0.0025], w: 0.6, d: 0.08, h: 0, cx: 0, cz: -4.36, yaw: 0, box: false, y: 2.6 },
+  // Thermostat on the hall side of the spine wall.
+  { file: 'thermostat', lc: [0, 0.00105], w: 0.14, d: 0.03, h: 0, cx: 0.12, cz: 0.15, yaw: Math.PI / 2, box: false, y: 1.5 },
+  // Light switches by the doors (plate centre 1.2 m up, on the
+  // room-side face beside each opening).
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: -1.61, yaw: Math.PI, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: 0.61, yaw: 0, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: -0.3, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: 0.55, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 3.12, cz: 0.61, yaw: 0, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.21, cz: 3.55, yaw: -Math.PI / 2, box: false, y: -1.2 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.61, yaw: 0, box: false, y: 1.3 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.49, yaw: Math.PI, box: false, y: 1.3 },
+  // Outlets (0.3 m up; kitchen + bathroom at counter height).
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 3.6, cz: 4.39, yaw: Math.PI, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 5.89, cz: 1.2, yaw: -Math.PI / 2, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -3.4, cz: -4.39, yaw: 0, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: -2.4, yaw: Math.PI / 2, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: 2.2, yaw: Math.PI / 2, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -3.2, cz: -0.41, yaw: 0, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 1.15, cz: -4.39, yaw: 0, box: false, y: 3.72 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: 1.2, yaw: Math.PI / 2, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -2.6, cz: 4.39, yaw: Math.PI, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -1.6, cz: 0.61, yaw: 0, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: -2.2, yaw: Math.PI / 2, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -3.4, cz: -4.39, yaw: 0, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 2.2, cz: -4.39, yaw: 0, box: false, y: 1.22 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 5.89, cz: -3.4, yaw: -Math.PI / 2, box: false, y: 1.22 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 0.5, cz: 4.39, yaw: Math.PI, box: false, y: -2.1 },
 ];
 
 function extractTris(

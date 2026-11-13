@@ -237,6 +237,23 @@ these, not the other way round.
   dividers not yet modelled (his piece — every linoleum edge
   gets one); ceiling fans, electrical outlets and other
   believability details to come from him.
+- **Believability set placed (2026-11-12, on WIP):** Models
+  built 13 pieces in one evening batch; DEV placed the
+  knowable ones — 5 ceiling fans (living, dining, three
+  bedrooms), 4 smoke detectors, range + fridge in the kitchen,
+  furnace + water heater in the basement, towel rail, hall
+  thermostat, 8 door switches, 15 outlets. Fans, fridge,
+  furnace/heater and plates are screenshot-verified. HELD for
+  Adam's markers: washer + dryer (laundry location unknown),
+  vent covers and curtains (window positions). The south
+  kitchen run has NO range gap — DEV's brief wrongly claimed
+  one (a screenshot misread, owned): the range currently sets
+  into the run's solid cabinets and is visually swallowed;
+  Models has been asked for a gap-cut run variant (lx
+  2.87..3.63, cut faces capped) and the range spec already
+  waits at that span. A window opening exists in the kitchen's
+  south wall above that stretch (seen in renders; unmarked —
+  Adam's window markers will confirm).
 
 ## The model pipeline
 
