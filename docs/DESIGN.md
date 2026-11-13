@@ -62,8 +62,18 @@ section is a decision.
   leaving. Leaving is a real solution and the Report should reward it.
 - **Start (proposed default):** solo dweller, starts in bed upstairs;
   stalker enters through the garage side door, then the mudroom door.
-- **Intruder spawn: a RANDOM ROOM (Adam, 2026-11-12).** Which rooms
-  are eligible for the draw is not yet specified — open detail.
+- **Intruder spawn: a RANDOM ROOM (Adam, 2026-11-12).** Eligibility
+  settled by Adam 2026-11-12 ("Ya I'm ok with those" on Marlowe's
+  suggestion). ELIGIBLE: the Kitchen, the Dining Room, the Living
+  Room, and the Basement (the scary variant — he came in through a
+  basement window and works his way up; weighted lower than the
+  main floor). INELIGIBLE: Darleen's Room (the player's start —
+  spawning there kills the creep phase), Clarissa's and Breanna's
+  rooms (wrong tone; also the player's floor, encounter too fast),
+  the Bathroom (nothing worth a sack), closets and the hall/stairs
+  (transit, not rooms you case). The walled-off Basement Room stays
+  out of the base draw (a closed-door spawn there is a possible
+  rare variant later — the open door would be the tell).
 - **Intruder flavour: he creeps around EXAMINING THE HOUSEHOLD
   GOODIES, carrying a PILLOWCASE as his loot sack (Adam,
   2026-11-12).** The pillowcase model is tasked to the Models chat:
