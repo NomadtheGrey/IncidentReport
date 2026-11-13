@@ -222,6 +222,21 @@ these, not the other way round.
   (from the objects batch) now stands in the corner at the
   3-seat couch's north end. It's the extension cord's home: the
   cord is pinned as plugged into this lamp when item logic lands.
+- **Day-one items scattered (2026-11-12, on WIP):** all 13
+  remaining objects placed — skillet + pot on the kitchen
+  counter, claw hammer in the ajar junk drawer, duct tape beside
+  it, extinguisher at the run's end, extension cord coiled at
+  the lamp's base, ashtray on the dining table, poker by the
+  entertainment center, phone on Darleen's nightstand, iron on
+  her dresser, bat beside her bed, plunger by the toilet, and
+  the shovel leaning on the basement-landing wall (the loader
+  gained a per-piece lean). Screenshot-verified except the
+  shovel, whose stairwell defeated the camera angles tried —
+  Adam's own walk is its check. Props carry no colliders.
+- **Adam's model queue (2026-11-12):** floor transition
+  dividers not yet modelled (his piece — every linoleum edge
+  gets one); ceiling fans, electrical outlets and other
+  believability details to come from him.
 
 ## The model pipeline
 
