@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Reflector } from 'three/addons/objects/Reflector.js';
 import { PlayerCharacter } from './playerCharacter';
 
 // First-person walkthrough of Adam's Blockbench model (AllFloors.gltf),
@@ -83,34 +84,43 @@ interface Zone {
 }
 
 const ZONES: Zone[] = [
-  { name: "Clarissa's Room", y: 2.5, x: [-6, -1], z: [-4.5, -0.5] },
-  { name: "Breanna's Room", y: 2.5, x: [-6, -1], z: [-0.5, 4.5] },
+  // Upstairs (floor plane 2.5). Bedroom names are generic by
+  // Adam's ruling (2026-11-13): Master Bedroom, Bedroom 1, 2.
+  { name: 'Bedroom 1', y: 2.5, x: [-6, -1], z: [-4.5, -0.5] },
+  { name: 'Bedroom 2', y: 2.5, x: [-6, -1], z: [-0.5, 4.5] },
   { name: 'Hall', y: 2.5, x: [-1, 1], z: [-1.5, 0.5] },
-  { name: "Darleen's Closet", y: 2.5, x: [2, 3], z: [-0.5, 0.5] },
+  { name: 'Master Closet', y: 2.5, x: [2, 3], z: [-0.5, 0.5] },
   { name: 'Hall Closet', y: 2.5, x: [1, 2], z: [-0.5, 0.5] },
   { name: 'Stairs', y: 2.5, x: [1, 6], z: [-1.5, 0.5] },
   { name: 'Bathroom', y: 2.5, x: [-1, 6], z: [-4.5, -1.5] },
-  { name: "Darleen's Room", y: 2.5, x: [-1, 6], z: [0.5, 4.5] },
-  { name: 'Kitchen', y: 0.1, x: [-6, -1], z: [-4.5, 0.5] },
+  { name: 'Master Bedroom', y: 2.5, x: [-1, 6], z: [0.5, 4.5] },
+  // Main floor (floor plane 0.1). Room uses follow Adam's own
+  // markers: kitchen east, dining west-south, living west-north.
+  // ('East Room' is a placeholder — Adam still owes that room's
+  // real name.)
+  { name: 'Dining Room', y: 0.1, x: [-6, -1], z: [-4.5, 0.5] },
   { name: 'Living Room', y: 0.1, x: [-6, -1], z: [0.5, 4.5] },
   { name: 'Hall / Entry', y: 0.1, x: [-1, 1], z: [-4.5, 4.5] },
   { name: 'Stairs', y: 0.1, x: [1, 6], z: [-1.5, 0.5] },
-  { name: 'Mudroom / Laundry', y: 0.1, x: [1, 6], z: [-4.5, -1.5] },
-  { name: 'Dining Room', y: 0.1, x: [1, 6], z: [0.5, 4.5] },
+  { name: 'Kitchen', y: 0.1, x: [1, 6], z: [-4.5, 0.5] },
+  { name: 'East Room', y: 0.1, x: [1, 6], z: [0.5, 4.5] },
+  // Basement (floor plane -2.4).
   { name: 'Basement Room', y: -2.4, x: [-6, -1.1], z: [0.5, 4.5] },
   { name: 'Basement', y: -2.4, x: [-6, 6], z: [-4.5, 4.5] },
 ];
 
 function zoneAt(x: number, z: number, ground: number): string {
+  // Hard floor band first: a label from another storey can never
+  // win. (The old test ran a distance contest between floor
+  // planes, and a main-floor label could win upstairs.)
+  const floorY = ground < -1.2 ? -2.4 : ground < 1.3 ? 0.1 : 2.5;
   let best: Zone | null = null;
-  let bestDist = Infinity;
   let bestArea = Infinity;
   for (const zn of ZONES) {
+    if (zn.y !== floorY) continue;
     if (x < zn.x[0] || x > zn.x[1] || z < zn.z[0] || z > zn.z[1]) continue;
-    const dist = Math.abs(zn.y - ground);
     const area = (zn.x[1] - zn.x[0]) * (zn.z[1] - zn.z[0]);
-    if (dist < bestDist || (dist === bestDist && area < bestArea)) {
-      bestDist = dist;
+    if (area < bestArea) {
       bestArea = area;
       best = zn;
     }
@@ -150,6 +160,11 @@ interface FurnitureSpec {
   w: number; d: number; h: number;
   cx: number; cz: number; yaw: number;
   box: boolean;
+  // Explicit collision segments in game coords [minX, maxX, minZ,
+  // maxZ] — for pieces whose auto box would wall off an opening
+  // the piece itself leaves open (the back-door cut in the south
+  // kitchen run). Replaces the auto box when present.
+  boxes?: [number, number, number, number][];
   y?: number; // floor height the piece stands on (default FURN_Y)
   lean?: number; // radians of forward tilt after yaw (wall-leaning props)
 }
@@ -193,7 +208,7 @@ const FURNITURE: FurnitureSpec[] = [
   // them facing the 2-seat; curio back on the hall spine (face 0).
   { file: 'couch-3seat', lc: [0, 0.0297], w: 2.3, d: 0.95, h: 0.92, cx: -5.425, cz: 2.55, yaw: Math.PI / 2, box: true, y: 0.1 },
   { file: 'couch-2seat', lc: [0, 0.0297], w: 1.7, d: 0.95, h: 0.92, cx: -1.45, cz: 3.925, yaw: Math.PI, box: true, y: 0.1 },
-  { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 1.46, cx: -1.45, cz: 0.65, yaw: 0, box: true, y: 0.1 },
+  { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 1.46, cx: -1.45, cz: 0.85, yaw: 0, box: true, y: 0.1 },
   { file: 'curio-cabinet', lc: [0, 0.0119], w: 0.9, d: 0.4, h: 1.96, cx: -0.2, cz: -2.95, yaw: -Math.PI / 2, box: true, y: 0.1 },
   // The floor lamp (Adam remembered it after the batch): in the
   // corner at the 3-seat couch's north end. The extension cord's
@@ -203,10 +218,11 @@ const FURNITURE: FurnitureSpec[] = [
   // and the east wall face (5.9), wall cabinets above them (their
   // height is baked into the files; no colliders, like the mirror).
   // The south run's west-end module is the junk drawer.
-  { file: 'kitchen-run-south', lc: [0.13125, 0.0203], w: 4.24, d: 0.65, h: 0.905, cx: 3.25, cz: -4.075, yaw: 0, box: true, y: 0.1 },
+  { file: 'kitchen-run-south', lc: [0.13125, 0.0203], w: 4.24, d: 0.65, h: 0.905, cx: 3.25, cz: -4.075, yaw: 0, box: true, y: 0.1,
+    boxes: [[1.11, 3.0, -4.42, -3.73], [4.76, 5.39, -4.42, -3.73]] },
   { file: 'kitchen-wall-south', lc: [0.10315, 0.01195], w: 3.32, d: 0.38, h: 0, cx: 2.79, cz: -4.21, yaw: 0, box: false, y: 0.1 },
-  { file: 'kitchen-run-east', lc: [0.13285, 0.0194], w: 4.29, d: 0.62, h: 1.16, cx: 5.59, cz: -2.255, yaw: -Math.PI / 2, box: true, y: 0.1 },
-  { file: 'kitchen-wall-east', lc: [0.19375, 0.01195], w: 2.12, d: 0.38, h: 0, cx: 5.71, cz: -1.28, yaw: -Math.PI / 2, box: false, y: 0.1 },
+  { file: 'kitchen-run-east', lc: [0.09005, 0.0194], w: 2.92, d: 0.62, h: 1.16, cx: 5.59, cz: -2.94, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  { file: 'kitchen-wall-east', lc: [0.1547, 0.01195], w: 0.85, d: 0.38, h: 0, cx: 5.71, cz: -1.9, yaw: -Math.PI / 2, box: false, y: 0.1 },
   // ---- The day-one items (objects batch), in their pinned or
   // sensible places (Adam, 2026-11-12: "add more stuff"). Small
   // props carry no colliders — you brush past a skillet.
@@ -214,15 +230,15 @@ const FURNITURE: FurnitureSpec[] = [
   // hammer in the ajar junk drawer, tape beside it, extinguisher
   // standing at the run's end.
   { file: 'skillet', lc: [0, 0.00525], w: 0.35, d: 0.51, h: 0.06, cx: 2.6, cz: -4.09, yaw: 0.5, box: false, y: 1.01 },
-  { file: 'pot', lc: [0, 0], w: 0.35, d: 0.32, h: 0.27, cx: 3.15, cz: -4.09, yaw: 0, box: false, y: 1.01 },
-  { file: 'claw-hammer', lc: [0, 0.01015], w: 0.05, d: 0.33, h: 0.07, cx: 1.43, cz: -3.68, yaw: Math.PI / 2, box: false, y: 0.62 },
+  { file: 'pot', lc: [0, 0], w: 0.35, d: 0.32, h: 0.27, cx: 4.37, cz: -4.07, yaw: 0, box: false, y: 1.02 },
+  { file: 'claw-hammer', lc: [0, 0.01015], w: 0.05, d: 0.33, h: 0.07, cx: 1.43, cz: -3.8, yaw: 0, box: false, y: 0.8 },
   { file: 'duct-tape', lc: [0, 0.003], w: 0.15, d: 0.24, h: 0.05, cx: 1.9, cz: -4.09, yaw: 0.4, box: false, y: 1.01 },
-  { file: 'fire-extinguisher', lc: [0, 0], w: 0.18, d: 0.16, h: 0.51, cx: 5.0, cz: -3.85, yaw: 0, box: true, y: 0.1 },
+  { file: 'fire-extinguisher', lc: [0, 0], w: 0.18, d: 0.16, h: 0.51, cx: 5.02, cz: -4.08, yaw: 0, box: false, y: 1.01 },
   // Living/dining: the cord coiled at its lamp's base, ashtray on
   // the dining table, poker set down by the entertainment center.
   { file: 'extension-cord', lc: [0, 0], w: 0.35, d: 0.31, h: 0.06, cx: -5.05, cz: 4.05, yaw: 0, box: false, y: 0.1 },
   { file: 'ashtray', lc: [0, 0], w: 0.13, d: 0.13, h: 0.05, cx: -4.7, cz: -2.6, yaw: 0, box: false, y: 0.86 },
-  { file: 'poker', lc: [0, 0.0206], w: 0.03, d: 0.98, h: 0.03, cx: -1.45, cz: 1.15, yaw: Math.PI / 2, box: false, y: 0.1 },
+
   // Upstairs: phone on Darleen's nightstand (top 3.21), iron on
   // her dresser (top 3.50), the bat on the floor beside her bed,
   // plunger by the toilet.
@@ -261,7 +277,7 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'furnace', lc: [0, 0.0233], w: 0.7, d: 0.746, h: 1.6, cx: 2.5, cz: 4.03, yaw: Math.PI, box: true, y: -2.4 },
   { file: 'water-heater', lc: [0, 0], w: 0.82, d: 0.82, h: 1.61, cx: 3.55, cz: 3.98, yaw: 0, box: true, y: -2.4 },
   // Towel rail on the bathroom's south wall, west of the vanity.
-  { file: 'towel-rail', lc: [0, 0.0025], w: 0.6, d: 0.08, h: 0, cx: 0, cz: -4.36, yaw: 0, box: false, y: 2.6 },
+  { file: 'towel-rail', lc: [0, 0.0025], w: 0.6, d: 0.08, h: 0, cx: -0.55, cz: -4.36, yaw: 0, box: false, y: 2.6 },
   // Thermostat on the hall side of the spine wall.
   { file: 'thermostat', lc: [0, 0.00105], w: 0.14, d: 0.03, h: 0, cx: 0.12, cz: 0.15, yaw: Math.PI / 2, box: false, y: 1.5 },
   // Light switches by the doors (plate centre 1.2 m up, on the
@@ -410,7 +426,7 @@ interface Box {
 
 export default function ModelWalk() {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [roomName, setRoomName] = useState("Darleen's Room");
+  const [roomName, setRoomName] = useState('Master Bedroom');
   const [doorNote, setDoorNote] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -477,12 +493,24 @@ export default function ModelWalk() {
     for (const [x, y, z] of [
       [0, -0.4, 0], [-3.5, -0.4, 2.5], // hall side + basement room
       [3.2, -0.5, -0.5], // inside the stair shaft, over the landing
+      [5.0, 0.2, -0.5], // over the basement landing itself — the
+      // shaft still read as a black pit from the main floor
+      // (playtest, 2026-11-13)
       [3.5, -0.5, -2.5], // open basement, east side
     ] as const) {
       const p = new THREE.PointLight(0xffd9a0, 20, 13, 1.8);
       p.position.set(x, y, z);
       scene.add(p);
     }
+
+    // Floor-transparency registry (third person): every house
+    // mesh, furniture group and door leaf is filed under its
+    // floor band, and in TP the bands above the player's floor
+    // hide — the pulled-back camera is never walled off by the
+    // storey overhead (Adam, 2026-11-13). Band cuts sit midway
+    // between the floor planes (-2.4 / 0.1 / 2.6).
+    const bandOf = (y: number): number => (y < -1.15 ? 0 : y < 1.35 ? 1 : 2);
+    const banded: { obj: THREE.Object3D; band: number }[] = [];
 
     // The yard at grade (his y=0 is the ground outside).
     const groundDisc = new THREE.Mesh(
@@ -524,23 +552,30 @@ export default function ModelWalk() {
       return best ?? current;
     };
 
-    const collides = (x: number, z: number, ground: number): boolean => {
+    // Slide rule: a candidate step is blocked only if it ends inside the
+    // body radius AND closer to the obstacle than where the step started.
+    // Tangential or separating steps always pass, so the walker slides
+    // along walls instead of gluing to them (the stair-lane freeze).
+    const boxDist2D = (b: Box, x: number, z: number): number => {
+      const dx = Math.max(b.minX - x, 0, x - b.maxX);
+      const dz = Math.max(b.minZ - z, 0, z - b.maxZ);
+      return Math.hypot(dx, dz);
+    };
+    const collides = (x: number, z: number, ground: number, fx: number, fz: number): boolean => {
       const bodyLo = ground + 0.05;
       const bodyHi = ground + BODY_H;
       for (const b of boxes) {
         if (b.doorIdx !== undefined && leaves[b.doorIdx].open01 > 0.45) continue;
         if (bodyHi < b.minY || bodyLo > b.maxY) continue;
-        const nx = Math.max(b.minX, Math.min(x, b.maxX));
-        const nz = Math.max(b.minZ, Math.min(z, b.maxZ));
-        const dx = x - nx;
-        const dz = z - nz;
-        if (dx * dx + dz * dz < RADIUS * RADIUS) return true;
+        const dCand = boxDist2D(b, x, z);
+        if (dCand < RADIUS && dCand < boxDist2D(b, fx, fz) - 1e-4) return true;
       }
       for (const t of walls) {
         // A step riser (0.2) never blocks; a real wall (2.4) does.
         if (t.maxY <= ground + STEP_UP || t.minY >= bodyHi) continue;
         if (x < t.minX - RADIUS || x > t.maxX + RADIUS || z < t.minZ - RADIUS || z > t.maxZ + RADIUS) continue;
-        if (distToTri2D(t, x, z) < RADIUS) return true;
+        const dCand = distToTri2D(t, x, z);
+        if (dCand < RADIUS && dCand < distToTri2D(t, fx, fz) - 1e-4) return true;
       }
       return false;
     };
@@ -564,6 +599,7 @@ export default function ModelWalk() {
         }
         pivot.add(leafMesh);
         scene.add(pivot);
+        banded.push({ obj: pivot, band: bandOf(spec.floorY) });
         const idx = leaves.length;
         leaves.push({ spec, pivot, openAngle, open01: 0, locked: false });
         boxes.push(
@@ -586,6 +622,7 @@ export default function ModelWalk() {
     let last = performance.now();
     const prevPos = { x: input.pos.x, z: input.pos.z };
     let lastRoom = '';
+    let lastVisKey = -99;
     let lastDoorNote: string | null = null;
 
     const isInside = (leaf: Leaf): boolean => {
@@ -600,6 +637,10 @@ export default function ModelWalk() {
       let bestD = Infinity;
       let bestInside = false;
       for (const leaf of leaves) {
+        // The lock answers only on the door's own floor, same gate
+        // as the proximity opening — a stray tap anywhere else in
+        // the house must never engage it (the phantom bedroom lock).
+        if (Math.abs(input.ground - leaf.spec.floorY) >= 1.0) continue;
         const d = Math.hypot(input.pos.x - leaf.spec.cx, input.pos.z - leaf.spec.cz);
         if (d < bestD) {
           best = leaf;
@@ -648,8 +689,8 @@ export default function ModelWalk() {
         // lane) does not block the step down past it.
         const stepBand = (nx: number, nz: number): number =>
           Math.min(input.ground, meshGround(nx, nz, input.ground));
-        if (!collides(p.x + wx, p.z, stepBand(p.x + wx, p.z))) p.x += wx;
-        if (!collides(p.x, p.z + wz, stepBand(p.x, p.z + wz))) p.z += wz;
+        if (!collides(p.x + wx, p.z, stepBand(p.x + wx, p.z), p.x, p.z)) p.x += wx;
+        if (!collides(p.x, p.z + wz, stepBand(p.x, p.z + wz), p.x, p.z)) p.z += wz;
       }
 
       let nearest: Leaf | null = null;
@@ -658,7 +699,11 @@ export default function ModelWalk() {
       for (const leaf of leaves) {
         const d = Math.hypot(input.pos.x - leaf.spec.cx, input.pos.z - leaf.spec.cz);
         const inside = isInside(leaf);
-        const target = d < 1.35 && (!leaf.locked || inside) ? 1 : 0;
+        // Doors answer only on their own floor: without this gate,
+        // standing one storey under a door opens it, and the upstairs
+        // closet door "opens" at the foot of the main-floor stairs.
+        const sameFloor = Math.abs(input.ground - leaf.spec.floorY) < 1.0;
+        const target = sameFloor && d < 1.35 && (!leaf.locked || inside) ? 1 : 0;
         const wasClosed = leaf.open01 <= 0;
         const step = dt * 2.4;
         leaf.open01 += Math.max(-step, Math.min(step, target - leaf.open01));
@@ -667,7 +712,7 @@ export default function ModelWalk() {
         }
         const o = leaf.open01;
         leaf.pivot.rotation.y = leaf.openAngle * (o * o * (3 - 2 * o));
-        if (d < nearestD) {
+        if (sameFloor && d < nearestD) {
           nearest = leaf;
           nearestD = d;
           nearestInside = inside;
@@ -699,6 +744,16 @@ export default function ModelWalk() {
       prevPos.z = input.pos.z;
       character.group.position.set(input.pos.x, input.ground, input.pos.z);
       character.group.rotation.y = input.yaw + Math.PI;
+      // Third-person floor transparency: hide the floor bands
+      // above the player's floor; first person sees everything.
+      // Reapplied only when the view or the band changes.
+      const pBand = bandOf(input.ground);
+      const visKey = viewRef.current === 'tp' ? pBand : -1;
+      if (visKey !== lastVisKey) {
+        lastVisKey = visKey;
+        for (const b of banded) b.obj.visible = visKey === -1 || b.band <= pBand;
+      }
+
       character.group.visible = viewRef.current === 'tp';
       character.update(dt, speed);
 
@@ -816,6 +871,18 @@ export default function ModelWalk() {
         const tris = extractTris(holder, locators);
         floors = tris.floors;
         walls = tris.walls;
+        // File every house mesh under its floor band for the
+        // third-person transparency rule (locators stay hidden).
+        holder.updateMatrixWorld(true);
+        {
+          const tmpBox = new THREE.Box3();
+          holder.traverse((obj) => {
+            const mesh = obj as THREE.Mesh;
+            if (!mesh.isMesh || locators.has(obj)) return;
+            tmpBox.setFromObject(mesh);
+            banded.push({ obj, band: bandOf((tmpBox.min.y + tmpBox.max.y) / 2) });
+          });
+        }
         buildLeaves();
         // Furniture: the pieces' own axes are already game-shaped
         // (x across, y up, z toward the front), so each one is just
@@ -847,7 +914,12 @@ export default function ModelWalk() {
               const fy = spec.y ?? FURN_Y;
               group.position.set(spec.cx, fy, spec.cz);
               scene.add(group);
-              if (spec.box) {
+              banded.push({ obj: group, band: bandOf(fy) });
+              if (spec.boxes) {
+                for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
+                  boxes.push({ minX, maxX, minZ, maxZ, minY: fy, maxY: fy + spec.h });
+                }
+              } else if (spec.box) {
                 const swap = Math.abs(Math.sin(spec.yaw)) > 0.5;
                 const hw = (swap ? spec.d : spec.w) / 2;
                 const hd = (swap ? spec.w : spec.d) / 2;
@@ -862,6 +934,23 @@ export default function ModelWalk() {
             }
           }),
         );
+        // A real mirror (Adam asked, 2026-11-13): a planar
+        // reflector laid over the bathroom mirror's glass. It
+        // re-renders the scene from the mirrored camera, but
+        // only while it is itself on screen, at 512px — cheap
+        // insurance on a phone. The glass was measured from
+        // Models' file: 0.75 x 0.99 m, its centre 1.58 m up the
+        // piece, its face 4 mm behind this plane.
+        const reflector = new Reflector(new THREE.PlaneGeometry(0.75, 0.99), {
+          clipBias: 0.003,
+          textureWidth: 512,
+          textureHeight: 512,
+          color: 0x9aa5a8,
+        });
+        reflector.position.set(0.62, 2.6 + 1.584, -4.364);
+        scene.add(reflector);
+        banded.push({ obj: reflector, band: 2 });
+
         if (disposed) return;
         input.ground = meshGround(input.pos.x, input.pos.z, input.ground);
         setReady(true);
