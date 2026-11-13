@@ -257,6 +257,20 @@ these, not the other way round.
   (cooktop, oven front, clearance both sides). Resolved. A window opening exists in the kitchen's
   south wall above that stretch (seen in renders; unmarked —
   Adam's window markers will confirm).
+- **The Goodguy is in (2026-11-13, on WIP):** the homeowner
+  model (characters/goodguy/Goodguy.glb, 1.76 m, nine clips)
+  is loaded by the new src/game/playerCharacter.ts and wired
+  to the walkthrough controller: locomotion clips crossfade
+  from the controller's real ground speed (Idle/Walk/Run),
+  approaching a closed door triggers 'Open door', and the
+  lock toggle triggers 'Use / press'. Pickup, phone and
+  slash clips wait for their mechanics. He is visible in the
+  new THIRD-PERSON view (the 👁 button or the V key; first
+  person stays the default and bodiless) — the third-person
+  camera pulls 3 m back but clamps at the first wall, so it
+  stays inside small rooms. Locomotion, facing, scale and
+  the camera clamp are screenshot-verified; the door
+  one-shot fires off the leaf-open transition.
 
 ## The model pipeline
 

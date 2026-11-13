@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { PlayerCharacter } from './playerCharacter';
 
 // First-person walkthrough of Adam's Blockbench model (AllFloors.gltf),
 // loaded as the house itself — the pipeline the hand-translated build
@@ -414,6 +415,15 @@ export default function ModelWalk() {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const lockActionRef = useRef<(() => void) | null>(null);
+  const [view, setView] = useState<'fp' | 'tp'>('fp');
+  const viewRef = useRef<'fp' | 'tp'>('fp');
+  const toggleView = () => {
+    const next = viewRef.current === 'fp' ? 'tp' : 'fp';
+    viewRef.current = next;
+    setView(next);
+  };
+  const viewToggleRef = useRef<(() => void) | null>(null);
+  viewToggleRef.current = toggleView;
   const [isTouch, setIsTouch] = useState(false);
   const [stick, setStick] = useState<{ ox: number; oy: number; dx: number; dy: number } | null>(null);
 
@@ -482,6 +492,20 @@ export default function ModelWalk() {
     groundDisc.rotation.x = -Math.PI / 2;
     groundDisc.position.y = -0.02;
     scene.add(groundDisc);
+
+    // The homeowner himself, wired to this controller (see
+    // playerCharacter.ts). Loads alongside the house; visible
+    // only in third-person view — first person stays bodiless
+    // for now. His nose points +Z in the file, so his group
+    // takes the controller yaw + π (see the tick).
+    const character = new PlayerCharacter();
+    character.group.visible = false;
+    scene.add(character.group);
+    character.load(
+      [0, 1, 2, 3, 4, 5, 6].map((i) => `models/characters/goodguy-part-0${i}.b64`),
+    ).catch(() => {
+      // A missing character must never take the walkthrough down.
+    });
 
     let floors: Tri[] = [];
     let walls: Tri[] = [];
@@ -560,6 +584,7 @@ export default function ModelWalk() {
 
     let raf = 0;
     let last = performance.now();
+    const prevPos = { x: input.pos.x, z: input.pos.z };
     let lastRoom = '';
     let lastDoorNote: string | null = null;
 
@@ -582,7 +607,10 @@ export default function ModelWalk() {
           bestInside = isInside(leaf);
         }
       }
-      if (best && bestD < 1.3 && bestInside) best.locked = !best.locked;
+      if (best && bestD < 1.3 && bestInside) {
+        best.locked = !best.locked;
+        character.playOnce('Use / press');
+      }
     };
     lockActionRef.current = toggleLock;
 
@@ -631,8 +659,12 @@ export default function ModelWalk() {
         const d = Math.hypot(input.pos.x - leaf.spec.cx, input.pos.z - leaf.spec.cz);
         const inside = isInside(leaf);
         const target = d < 1.35 && (!leaf.locked || inside) ? 1 : 0;
+        const wasClosed = leaf.open01 <= 0;
         const step = dt * 2.4;
         leaf.open01 += Math.max(-step, Math.min(step, target - leaf.open01));
+        if (wasClosed && target === 1 && leaf.open01 > 0) {
+          character.playOnce('Open door');
+        }
         const o = leaf.open01;
         leaf.pivot.rotation.y = leaf.openAngle * (o * o * (3 - 2 * o));
         if (d < nearestD) {
@@ -658,8 +690,58 @@ export default function ModelWalk() {
 
       input.ground = meshGround(input.pos.x, input.pos.z, input.ground);
       input.pos.y = input.ground;
-      camera.position.set(input.pos.x, input.ground + EYE, input.pos.z);
+
+      // The character rides the controller: feet on the ground,
+      // facing where it faces, locomotion clip from real speed.
+      const moved = Math.hypot(input.pos.x - prevPos.x, input.pos.z - prevPos.z);
+      const speed = dt > 0 ? moved / dt : 0;
+      prevPos.x = input.pos.x;
+      prevPos.z = input.pos.z;
+      character.group.position.set(input.pos.x, input.ground, input.pos.z);
+      character.group.rotation.y = input.yaw + Math.PI;
+      character.group.visible = viewRef.current === 'tp';
+      character.update(dt, speed);
+
       camera.rotation.set(input.pitch, input.yaw, 0);
+      if (viewRef.current === 'tp') {
+        // Pull the camera back along the look direction, aimed
+        // at the character's chest — but stop at the first wall:
+        // in a house of small rooms an unclamped 3 m boom spends
+        // half its life inside the next room's wall.
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        const tx = input.pos.x;
+        const ty = input.ground + 1.55;
+        const tz = input.pos.z;
+        let cx = tx - dir.x * 3.0;
+        let cy = ty - dir.y * 3.0 + 0.3;
+        let cz = tz - dir.z * 3.0;
+        let tMax = 1;
+        for (const w of walls) {
+          if (w.maxY < cy - 0.2 || w.minY > cy + 0.2) continue;
+          // Segment (t->c) against the wall triangle's XZ edges.
+          const px = [w.ax, w.bx, w.cx];
+          const pz = [w.az, w.bz, w.cz];
+          for (let e = 0; e < 3; e++) {
+            const ex = px[(e + 1) % 3] - px[e];
+            const ez = pz[(e + 1) % 3] - pz[e];
+            const dx = cx - tx;
+            const dz = cz - tz;
+            const den = dx * ez - dz * ex;
+            if (Math.abs(den) < 1e-9) continue;
+            const t = ((px[e] - tx) * ez - (pz[e] - tz) * ex) / den;
+            const u = ((px[e] - tx) * dz - (pz[e] - tz) * dx) / den;
+            if (t > 0.02 && t < tMax && u >= 0 && u <= 1) tMax = t;
+          }
+        }
+        const t = Math.max(0.12, tMax - 0.03);
+        cx = tx + (cx - tx) * t;
+        cy = Math.max(input.ground + 0.3, ty + (cy - ty) * t);
+        cz = tz + (cz - tz) * t;
+        camera.position.set(cx, cy, cz);
+      } else {
+        camera.position.set(input.pos.x, input.ground + EYE, input.pos.z);
+      }
 
       const label = zoneAt(input.pos.x, input.pos.z, input.ground);
       if (label !== lastRoom) {
@@ -683,6 +765,10 @@ export default function ModelWalk() {
       if (e.code === 'KeyE') toggleLock();
     };
     window.addEventListener('keydown', onLockKey);
+    const onViewKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyV') viewToggleRef.current?.();
+    };
+    window.addEventListener('keydown', onViewKey);
     const onMouseMove = (e: MouseEvent) => {
       if (document.pointerLockElement !== renderer.domElement) return;
       input.yaw -= e.movementX * 0.0022;
@@ -793,6 +879,7 @@ export default function ModelWalk() {
       window.removeEventListener('keydown', kd);
       window.removeEventListener('keyup', ku);
       window.removeEventListener('keydown', onLockKey);
+      window.removeEventListener('keydown', onViewKey);
       document.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('click', onCanvasClick);
       if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
@@ -891,8 +978,20 @@ export default function ModelWalk() {
           fontSize: '0.8rem', opacity: 0.85, textAlign: 'right',
         }}
       >
-        {isTouch ? 'Left thumb: move · drag: look' : 'Click: look · WASD: move · Shift: run · E: lock / unlock'}
+        {isTouch ? 'Left thumb: move · drag: look' : 'Click: look · WASD: move · Shift: run · E: lock / unlock · V: view'}
       </div>
+
+      {/* First / third person toggle (the character is visible in third). */}
+      <button
+        onClick={toggleView}
+        style={{
+          position: 'absolute', right: 12, top: 12, minHeight: 48,
+          padding: '0.5rem 1rem', background: 'rgba(20,18,14,0.85)', color: '#e8e4da',
+          border: '1px solid rgba(232,228,218,0.4)', fontSize: '0.95rem', letterSpacing: '0.04em',
+        }}
+      >
+        {view === 'fp' ? '👁 Third person' : '👁 First person'}
+      </button>
 
       {!ready && !loadError && (
         <div
