@@ -383,3 +383,24 @@ these, not the other way round.
 - **Next gameplay step** (proposed, not commissioned): the first
   pick-uppable object (bat or kitchen skillet), then the incident
   itself — stalker, bonk, 911 call, report card.
+- **Correction pass (2026-11-13, from Adam's playtest of the
+  Goodguy build)**: the basement descent is fixed at its roots —
+  collision now blocks only motion INTO an obstacle (sliding
+  along a wall in the 0.9 m stair lanes used to glue the walker),
+  and the shortened east kitchen run no longer boxes the landing.
+  Doors answer only on their own floor (proximity, lock and HUD
+  note all gated on the player's storey) — one root for the
+  phantom bedroom lock and doors opening from other floors. HUD
+  zones are floor-banded and relabelled to Adam's markers
+  (Kitchen east, Dining west-south, Living west-north; the
+  east-north room is 'East Room' until Adam names it); bedrooms
+  carry no proper names (Master Bedroom, Bedroom 1, Bedroom 2).
+  The homeowner's clips are layered — legs always walk, one-shots
+  (door, lock) play on the upper body. Third person hides the
+  floor bands above the player. The bathroom mirror is a real
+  planar reflection. The back door (measured: the south wall's
+  only opening, game x 3.10..3.90) has its counter run and wall
+  cabinets cut, and the run's collision is split around the
+  opening (the spec.boxes mechanism). Round props are honestly
+  round (Models' Round Rule), the TV is dark, the poker is
+  removed (no fireplace), and the hammer sits in the junk drawer.
