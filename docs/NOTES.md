@@ -200,6 +200,63 @@ these, not the other way round.
   Screenshot-verified room by room. HUD zone names still predate
   Adam's geography (the "Kitchen" label sits over the dining
   room) — renames wait on his library scribbles.
+- **Upstairs leaves re-hung (2026-11-12, on WIP):** Adam spotted
+  doors poking through ceilings. Cause: the five upstairs leaves
+  were hung at floorY 2.5 — the slab's underside datum — while
+  the walking surface is the slab top, 2.6. Every upstairs leaf
+  sank 0.1 into the floor, its bottom edge sitting exactly in the
+  ceiling plane of the rooms below. All five now hang at 2.6 like
+  the basement leaf always did (−2.4). Screenshot-verified: the
+  bathroom leaf's foot meets the floor cleanly.
+- **The basement-stairs "missing enclosure" (Adam's report,
+  2026-11-12):** measured the markers export piece by piece in
+  Adam's own coords — the shaft's outer enclosure walls (both
+  sides, his z 2..6), the end wall, and the divider (z 2..4, ending
+  at the landing, z 4..6) are all IN the file and render. No piece
+  in the export crosses the basement landing. If Adam's Blockbench
+  project now shows a wall across that landing stretch, it changed
+  after the 13:50 export — a re-export is the fix, and DEV will
+  swap it in and prove the wall renders.
+- **Floor lamp placed (2026-11-12, on WIP):** Adam remembered the
+  lamp after the furniture batch — the living room's floor lamp
+  (from the objects batch) now stands in the corner at the
+  3-seat couch's north end. It's the extension cord's home: the
+  cord is pinned as plugged into this lamp when item logic lands.
+- **Day-one items scattered (2026-11-12, on WIP):** all 13
+  remaining objects placed — skillet + pot on the kitchen
+  counter, claw hammer in the ajar junk drawer, duct tape beside
+  it, extinguisher at the run's end, extension cord coiled at
+  the lamp's base, ashtray on the dining table, poker by the
+  entertainment center, phone on Darleen's nightstand, iron on
+  her dresser, bat beside her bed, plunger by the toilet, and
+  the shovel leaning on the basement-landing wall (the loader
+  gained a per-piece lean). Screenshot-verified except the
+  shovel, whose stairwell defeated the camera angles tried —
+  Adam's own walk is its check. Props carry no colliders.
+- **Adam's model queue (2026-11-12):** floor transition
+  dividers not yet modelled (his piece — every linoleum edge
+  gets one); ceiling fans, electrical outlets and other
+  believability details to come from him.
+- **Believability set placed (2026-11-12, on WIP):** Models
+  built 13 pieces in one evening batch; DEV placed the
+  knowable ones — 5 ceiling fans (living, dining, three
+  bedrooms), 4 smoke detectors, range + fridge in the kitchen,
+  furnace + water heater in the basement, towel rail, hall
+  thermostat, 8 door switches, 15 outlets. Fans, fridge,
+  furnace/heater and plates are screenshot-verified. HELD for
+  Adam's markers: washer + dryer (laundry location unknown),
+  vent covers and curtains (window positions). The south
+  kitchen run has NO range gap — DEV's brief wrongly claimed
+  one (a screenshot misread, owned): the range currently sets
+  into the run's solid cabinets and is visually swallowed;
+  Models has been asked for a gap-cut run variant (lx
+  2.87..3.63, cut faces capped) and the range spec already
+  waits at that span. UPDATE, same evening: the gap variant
+  landed and is swapped in — the range now sits in a true
+  opening with capped neighbours, screenshot-verified
+  (cooktop, oven front, clearance both sides). Resolved. A window opening exists in the kitchen's
+  south wall above that stretch (seen in renders; unmarked —
+  Adam's window markers will confirm).
 
 ## The model pipeline
 

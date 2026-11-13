@@ -58,12 +58,14 @@ interface ModelDoor {
 }
 
 const MODEL_DOORS: ModelDoor[] = [
-  // Upstairs (floor 2.5), openings 0.8 wide per the schedule.
-  { id: 'clarissa', cx: -1.07, cz: -0.89, floorY: 2.5, width: 0.8, wallAxis: 'x', insideSign: -1 },
-  { id: 'breanna', cx: -1.07, cz: 0.0, floorY: 2.5, width: 0.8, wallAxis: 'x', insideSign: -1 },
-  { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: -1 },
-  { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: 1 },
-  { id: 'darleens-closet', cx: 2.58, cz: 0.5, floorY: 2.5, width: 0.8, wallAxis: 'z', insideSign: -1 },
+  // Upstairs (walking surface 2.6 — the slab top; the leaves used to
+  // hang at 2.5 and sank 0.1 into the floor, their bottom edges
+  // landing in the ceiling plane of the rooms below), openings 0.8.
+  { id: 'clarissa', cx: -1.07, cz: -0.89, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
+  { id: 'breanna', cx: -1.07, cz: 0.0, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
+  { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
+  { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: 1 },
+  { id: 'darleens-closet', cx: 2.58, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
   // Main floor: NO leaf in the hall<->stairwell opening — Adam's pin
   // (2026-11-12): that doorway stays open. The leaf that used to hang
   // here could also bar the only route to the basement stairs.
@@ -148,6 +150,7 @@ interface FurnitureSpec {
   cx: number; cz: number; yaw: number;
   box: boolean;
   y?: number; // floor height the piece stands on (default FURN_Y)
+  lean?: number; // radians of forward tilt after yaw (wall-leaning props)
 }
 
 const FURN_Y = 2.6;
@@ -191,6 +194,10 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'couch-2seat', lc: [0, 0.0297], w: 1.7, d: 0.95, h: 0.92, cx: -1.45, cz: 3.925, yaw: Math.PI, box: true, y: 0.1 },
   { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 1.46, cx: -1.45, cz: 0.65, yaw: 0, box: true, y: 0.1 },
   { file: 'curio-cabinet', lc: [0, 0.0119], w: 0.9, d: 0.4, h: 1.96, cx: -0.2, cz: -2.95, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  // The floor lamp (Adam remembered it after the batch): in the
+  // corner at the 3-seat couch's north end. The extension cord's
+  // home is plugged into this lamp (item logic comes later).
+  { file: 'floor-lamp', lc: [0, 0], w: 0.36, d: 0.36, h: 1.62, cx: -5.55, cz: 4.05, yaw: 0, box: true, y: 0.1 },
   // Kitchen (east room): base runs on the south wall face (-4.4)
   // and the east wall face (5.9), wall cabinets above them (their
   // height is baked into the files; no colliders, like the mirror).
@@ -199,6 +206,89 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'kitchen-wall-south', lc: [0.10315, 0.01195], w: 3.32, d: 0.38, h: 0, cx: 2.79, cz: -4.21, yaw: 0, box: false, y: 0.1 },
   { file: 'kitchen-run-east', lc: [0.13285, 0.0194], w: 4.29, d: 0.62, h: 1.16, cx: 5.59, cz: -2.255, yaw: -Math.PI / 2, box: true, y: 0.1 },
   { file: 'kitchen-wall-east', lc: [0.19375, 0.01195], w: 2.12, d: 0.38, h: 0, cx: 5.71, cz: -1.28, yaw: -Math.PI / 2, box: false, y: 0.1 },
+  // ---- The day-one items (objects batch), in their pinned or
+  // sensible places (Adam, 2026-11-12: "add more stuff"). Small
+  // props carry no colliders — you brush past a skillet.
+  // Kitchen: skillet + pot on the south counter (top y 1.01),
+  // hammer in the ajar junk drawer, tape beside it, extinguisher
+  // standing at the run's end.
+  { file: 'skillet', lc: [0, 0.00525], w: 0.35, d: 0.51, h: 0.06, cx: 2.6, cz: -4.09, yaw: 0.5, box: false, y: 1.01 },
+  { file: 'pot', lc: [0, 0], w: 0.35, d: 0.32, h: 0.27, cx: 3.15, cz: -4.09, yaw: 0, box: false, y: 1.01 },
+  { file: 'claw-hammer', lc: [0, 0.01015], w: 0.05, d: 0.33, h: 0.07, cx: 1.43, cz: -3.68, yaw: Math.PI / 2, box: false, y: 0.62 },
+  { file: 'duct-tape', lc: [0, 0.003], w: 0.15, d: 0.24, h: 0.05, cx: 1.9, cz: -4.09, yaw: 0.4, box: false, y: 1.01 },
+  { file: 'fire-extinguisher', lc: [0, 0], w: 0.18, d: 0.16, h: 0.51, cx: 5.0, cz: -3.85, yaw: 0, box: true, y: 0.1 },
+  // Living/dining: the cord coiled at its lamp's base, ashtray on
+  // the dining table, poker set down by the entertainment center.
+  { file: 'extension-cord', lc: [0, 0], w: 0.35, d: 0.31, h: 0.06, cx: -5.05, cz: 4.05, yaw: 0, box: false, y: 0.1 },
+  { file: 'ashtray', lc: [0, 0], w: 0.13, d: 0.13, h: 0.05, cx: -4.7, cz: -2.6, yaw: 0, box: false, y: 0.86 },
+  { file: 'poker', lc: [0, 0.0206], w: 0.03, d: 0.98, h: 0.03, cx: -1.45, cz: 1.15, yaw: Math.PI / 2, box: false, y: 0.1 },
+  // Upstairs: phone on Darleen's nightstand (top 3.21), iron on
+  // her dresser (top 3.50), the bat on the floor beside her bed,
+  // plunger by the toilet.
+  { file: 'phone', lc: [0, 0], w: 0.08, d: 0.21, h: 0.06, cx: 0.72, cz: 4.16, yaw: 0, box: false, y: 3.21 },
+  { file: 'clothes-iron', lc: [0, 0.0017], w: 0.12, d: 0.36, h: 0.15, cx: 5.64, cz: 2.2, yaw: -Math.PI / 2, box: false, y: 3.5 },
+  { file: 'baseball-bat', lc: [0, 0.02535], w: 0.36, d: 0.91, h: 0.07, cx: 3.18, cz: 3.2, yaw: 0, box: false, y: 2.6 },
+  { file: 'plunger', lc: [0, 0], w: 0.16, d: 0.16, h: 0.58, cx: 2.05, cz: -4.15, yaw: 0, box: false, y: 2.6 },
+  // The shovel hangs in the basement stairs (Adam's pin): leaning
+  // on the landing's east wall, handle up.
+  { file: 'shovel', lc: [0, 0.0325], w: 0.22, d: 1.3, h: 0.07, cx: 5.48, cz: -1.0, yaw: Math.PI / 2, box: false, y: -1.1, lean: -1.31 },
+  // ---- The believability set (Models batch, 2026-11-12). Adam
+  // approved the list; DEV places what the measured model makes
+  // knowable. Held for Adam's markers: washer, dryer (laundry
+  // location unknown), vent covers + curtains (window positions).
+  // Ceiling fans at room centres (origin at the ceiling plane;
+  // the model hangs below it).
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3, cz: 2.5, yaw: 0, box: false, y: 2.5 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3, cz: -2, yaw: 0, box: false, y: 2.5 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: 2.5, cz: 2.5, yaw: 0, box: false, y: 5.0 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3.5, cz: -2.5, yaw: 0, box: false, y: 5.0 },
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3.5, cz: 2.5, yaw: 0, box: false, y: 5.0 },
+  // Smoke detectors (origin at the ceiling, body below).
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0, cz: -0.5, yaw: 0, box: false, y: 5.0 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -0.5, yaw: 0, box: false, y: 2.5 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 4, cz: -3, yaw: 0, box: false, y: 2.5 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -2, yaw: 0, box: false, y: 0.0 },
+  // Kitchen appliances. NOTE: the south run has no range gap —
+  // the range sets into the run (its body swallows a counter
+  // stretch; fronts and cooktop sit flush/proud as a real range
+  // does). The fridge takes the run's west end (DEV's call, told
+  // to Adam; one marker moves it if the house says otherwise).
+  { file: 'range', lc: [0, 0.0206], w: 0.76, d: 0.66, h: 0.92, cx: 4.37, cz: -4.07, yaw: 0, box: true, y: 0.1 },
+  { file: 'fridge', lc: [0, 0.02765], w: 0.91, d: 0.885, h: 1.8, cx: 0.6, cz: -3.96, yaw: 0, box: true, y: 0.1 },
+  // Basement plant: furnace + water heater on the north wall of
+  // the open area, clear of the walled room and the stairs.
+  { file: 'furnace', lc: [0, 0.0233], w: 0.7, d: 0.746, h: 1.6, cx: 2.5, cz: 4.03, yaw: Math.PI, box: true, y: -2.4 },
+  { file: 'water-heater', lc: [0, 0], w: 0.82, d: 0.82, h: 1.61, cx: 3.55, cz: 3.98, yaw: 0, box: true, y: -2.4 },
+  // Towel rail on the bathroom's south wall, west of the vanity.
+  { file: 'towel-rail', lc: [0, 0.0025], w: 0.6, d: 0.08, h: 0, cx: 0, cz: -4.36, yaw: 0, box: false, y: 2.6 },
+  // Thermostat on the hall side of the spine wall.
+  { file: 'thermostat', lc: [0, 0.00105], w: 0.14, d: 0.03, h: 0, cx: 0.12, cz: 0.15, yaw: Math.PI / 2, box: false, y: 1.5 },
+  // Light switches by the doors (plate centre 1.2 m up, on the
+  // room-side face beside each opening).
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: -1.61, yaw: Math.PI, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.05, cz: 0.61, yaw: 0, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: -0.3, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: 0.55, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 3.12, cz: 0.61, yaw: 0, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.21, cz: 3.55, yaw: -Math.PI / 2, box: false, y: -1.2 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.61, yaw: 0, box: false, y: 1.3 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.49, yaw: Math.PI, box: false, y: 1.3 },
+  // Outlets (0.3 m up; kitchen + bathroom at counter height).
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 3.6, cz: 4.39, yaw: Math.PI, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 5.89, cz: 1.2, yaw: -Math.PI / 2, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -3.4, cz: -4.39, yaw: 0, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: -2.4, yaw: Math.PI / 2, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: 2.2, yaw: Math.PI / 2, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -3.2, cz: -0.41, yaw: 0, box: false, y: 2.9 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 1.15, cz: -4.39, yaw: 0, box: false, y: 3.72 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: 1.2, yaw: Math.PI / 2, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -2.6, cz: 4.39, yaw: Math.PI, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -1.6, cz: 0.61, yaw: 0, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -5.89, cz: -2.2, yaw: Math.PI / 2, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: -3.4, cz: -4.39, yaw: 0, box: false, y: 0.4 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 2.2, cz: -4.39, yaw: 0, box: false, y: 1.22 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 5.89, cz: -3.4, yaw: -Math.PI / 2, box: false, y: 1.22 },
+  { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 0.5, cz: 4.39, yaw: Math.PI, box: false, y: -2.1 },
 ];
 
 function extractTris(
@@ -665,7 +755,9 @@ export default function ModelWalk() {
               piece.scene.position.set(-spec.lc[0] * 16, 0, -spec.lc[1] * 16);
               const group = new THREE.Group();
               group.add(piece.scene);
+              group.rotation.order = 'YXZ';
               group.rotation.y = spec.yaw;
+              if (spec.lean) group.rotation.x = spec.lean;
               const fy = spec.y ?? FURN_Y;
               group.position.set(spec.cx, fy, spec.cz);
               scene.add(group);
