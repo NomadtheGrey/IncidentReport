@@ -404,3 +404,7 @@ these, not the other way round.
   opening (the spec.boxes mechanism). Round props are honestly
   round (Models' Round Rule), the TV is dark, the poker is
   removed (no fireplace), and the hammer sits in the junk drawer.
+- **Look tag (2026-11-13, Adam's ask)**: a centre dot + tag name
+  what the view is centred on — items, furniture, fixtures and
+  doors (with their locked state) — picked by a centre ray
+  against spec-derived boxes, hidden by any wall in between.
