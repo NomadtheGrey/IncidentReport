@@ -67,7 +67,9 @@ const MODEL_DOORS: ModelDoor[] = [
   { id: 'breanna', cx: -1.07, cz: 0.0, floorY: 2.6, width: 0.8, wallAxis: 'x', insideSign: -1 },
   { id: 'bathroom', cx: 0.5, cz: -1.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
   { id: 'darleen', cx: 0.5, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: 1 },
-  { id: 'darleens-closet', cx: 2.58, cz: 0.5, floorY: 2.6, width: 0.8, wallAxis: 'z', insideSign: -1 },
+  // Darleen's closet is DELETED (Adam, 2026-11-13): the doorway
+  // is sealed in his current model and the space is stairwell
+  // again — no leaf, no zone.
   // Main floor: NO leaf in the hall<->stairwell opening — Adam's pin
   // (2026-11-12): that doorway stays open. The leaf that used to hang
   // here could also bar the only route to the basement stairs.
@@ -89,7 +91,6 @@ const ZONES: Zone[] = [
   { name: 'Bedroom 1', y: 2.5, x: [-6, -1], z: [-4.5, -0.5] },
   { name: 'Bedroom 2', y: 2.5, x: [-6, -1], z: [-0.5, 4.5] },
   { name: 'Hall', y: 2.5, x: [-1, 1], z: [-1.5, 0.5] },
-  { name: 'Master Closet', y: 2.5, x: [2, 3], z: [-0.5, 0.5] },
   { name: 'Hall Closet', y: 2.5, x: [1, 2], z: [-0.5, 0.5] },
   { name: 'Stairs', y: 2.5, x: [1, 6], z: [-1.5, 0.5] },
   { name: 'Bathroom', y: 2.5, x: [-1, 6], z: [-4.5, -1.5] },
@@ -343,7 +344,7 @@ const LOOK_Y: Record<string, [number, number]> = {
 };
 const DOOR_NAMES: Record<string, string> = {
   clarissa: 'Bedroom 1 Door', breanna: 'Bedroom 2 Door', bathroom: 'Bathroom Door',
-  darleen: 'Master Bedroom Door', 'darleens-closet': 'Master Closet Door',
+  darleen: 'Master Bedroom Door',
   'basement-room': 'Basement Room Door',
 };
 
