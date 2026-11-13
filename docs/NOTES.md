@@ -457,3 +457,15 @@ these, not the other way round.
   Note: the flights themselves are still 1.0 m wide in the now
   1.1 m lanes — a thin slot runs beside each flight; Adam's
   call whether the flights widen too.
+- **Stair-widening model swap (2026-11-13, Adam's export)**:
+  the flights now fill their widened lanes — all four runs
+  measure wall-to-wall (up run 1 z -0.50..0.75, up run 2
+  z -1.70..-0.50, down runs to the -1.6 / +0.7 faces) and both
+  landings span the full band, so the slots beside the flights
+  are closed. The upstairs floor-slab edges were also extended
+  to meet the moved bathroom/master walls (the missing-face
+  fill). Colours re-applied as usual. Verified: stair profile
+  probe clean end to end, lane screenshots show no slot.
+  Still open on Adam's side: the two exact-copy 'cube' pieces
+  on the west cross-wall line (his x 0.00..0.10) are both still
+  doubled in this export — parked until he finds them.
