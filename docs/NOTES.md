@@ -251,7 +251,10 @@ these, not the other way round.
   into the run's solid cabinets and is visually swallowed;
   Models has been asked for a gap-cut run variant (lx
   2.87..3.63, cut faces capped) and the range spec already
-  waits at that span. A window opening exists in the kitchen's
+  waits at that span. UPDATE, same evening: the gap variant
+  landed and is swapped in — the range now sits in a true
+  opening with capped neighbours, screenshot-verified
+  (cooktop, oven front, clearance both sides). Resolved. A window opening exists in the kitchen's
   south wall above that stretch (seen in renders; unmarked —
   Adam's window markers will confirm).
 
