@@ -366,7 +366,39 @@ const DOOR_NAMES: Record<string, string> = {
 interface LookTarget {
   name: string;
   minX: number; maxX: number; minZ: number; maxZ: number; minY: number; maxY: number;
+  file?: string;
+  gone?: boolean; // held in hand — not a world target right now
 }
+
+// What a hand can hold (Adam, 2026-11-13: E interacts, and an
+// equippable item gets picked up). The phone is deliberately
+// NOT here — it gets its own mechanic later.
+const PICKUPABLE = new Set([
+  'skillet', 'pot', 'claw-hammer', 'fire-extinguisher',
+  'baseball-bat', 'plunger', 'shovel',
+]);
+
+// First-pass grips, to be tuned by eye: FP = camera-local
+// viewmodel pose; TP = extra rotation on top of his facing
+// while the piece rides his right hand.
+const GRIP_FP: Record<string, { p: [number, number, number]; r: [number, number, number] }> = {
+  skillet: { p: [0.27, -0.25, -0.5], r: [-0.45, 0.1, 0.1] },
+  pot: { p: [0.3, -0.3, -0.55], r: [0.1, 0, 0] },
+  'claw-hammer': { p: [0.26, -0.24, -0.45], r: [0.5, 0, -0.35] },
+  'fire-extinguisher': { p: [0.3, -0.32, -0.5], r: [0, 0, 0] },
+  'baseball-bat': { p: [0.3, -0.26, -0.5], r: [0.85, 0, -0.55] },
+  plunger: { p: [0.27, -0.28, -0.5], r: [0.65, 0, -0.2] },
+  shovel: { p: [0.3, -0.27, -0.55], r: [0.8, 0, -0.3] },
+};
+const GRIP_TP: Record<string, [number, number, number]> = {
+  skillet: [1.35, 0, 0],
+  pot: [0.3, 0, 0],
+  'claw-hammer': [1.1, 0, 0.2],
+  'fire-extinguisher': [0.2, 0, 0],
+  'baseball-bat': [1.2, 0, 0.3],
+  plunger: [1.1, 0, 0],
+  shovel: [1.15, 0, 0.2],
+};
 
 const LOOK_TARGETS: LookTarget[] = [];
 for (const spec of FURNITURE) {
@@ -377,7 +409,7 @@ for (const spec of FURNITURE) {
   if (spec.boxes) {
     for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
       LOOK_TARGETS.push({
-        name, minX: minX - 0.02, maxX: maxX + 0.02, minZ: minZ - 0.02, maxZ: maxZ + 0.02,
+        name, file: spec.file, minX: minX - 0.02, maxX: maxX + 0.02, minZ: minZ - 0.02, maxZ: maxZ + 0.02,
         minY: fy + ys[0], maxY: fy + ys[1],
       });
     }
@@ -387,11 +419,16 @@ for (const spec of FURNITURE) {
   const hw = (swap ? spec.d : spec.w) / 2 + 0.03;
   const hd = (swap ? spec.w : spec.d) / 2 + 0.03;
   LOOK_TARGETS.push({
-    name,
+    name, file: spec.file,
     minX: spec.cx - hw, maxX: spec.cx + hw, minZ: spec.cz - hd, maxZ: spec.cz + hd,
     minY: fy + ys[0], maxY: fy + ys[1],
   });
 }
+
+// Pristine copy of the targets' home boxes, so leaving the
+// walkthrough can undo pickup/drop edits (the array itself is
+// module-level and outlives a mount).
+const LOOK_HOME = LOOK_TARGETS.map((t) => ({ ...t }));
 
 // Ray vs AABB (slab test): the entry distance, or Infinity.
 function rayBoxT(
@@ -559,9 +596,11 @@ export default function ModelWalk() {
   const [roomName, setRoomName] = useState('Master Bedroom');
   const [doorNote, setDoorNote] = useState<string | null>(null);
   const [lookLabel, setLookLabel] = useState<string | null>(null);
+  const [interactNote, setInteractNote] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const lockActionRef = useRef<(() => void) | null>(null);
+  const interactActionRef = useRef<(() => void) | null>(null);
   const [view, setView] = useState<'fp' | 'tp'>('fp');
   const viewRef = useRef<'fp' | 'tp'>('fp');
   const toggleView = () => {
@@ -598,6 +637,7 @@ export default function ModelWalk() {
     scene.fog = new THREE.Fog(0x07080c, 30, 80);
 
     const camera = new THREE.PerspectiveCamera(72, mount.clientWidth / mount.clientHeight, 0.05, 120);
+    scene.add(camera); // so a held item can ride the camera in FP
     camera.rotation.order = 'YXZ';
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -779,6 +819,8 @@ export default function ModelWalk() {
     let lastVisKey = -99;
     let lastDoorNote: string | null = null;
     let lastLook: string | null = null;
+    let lastInteractNote: string | null = null;
+    let lastHeldView: 'fp' | 'tp' = 'fp';
 
     const isInside = (leaf: Leaf): boolean => {
       const off = leaf.spec.wallAxis === 'x'
@@ -787,7 +829,77 @@ export default function ModelWalk() {
       return off === 0 || Math.sign(off) === leaf.spec.insideSign;
     };
 
-    const toggleLock = () => {
+    // ---- Pickup: one thing in hand, E is contextual ----
+    // E on a looked-at hand item picks it up (swapping out
+    // whatever is held); E near a door still locks/unlocks it;
+    // E anywhere else puts the held thing down at his feet.
+    type Piece = { spec: (typeof FURNITURE)[number]; group: THREE.Group; state: 'placed' | 'held' | 'dropped' };
+    const pieces = new Map<string, Piece>();
+    let heldFile: string | null = null;
+    const lookRef = { file: null as string | null };
+    let handBone: THREE.Object3D | null = null;
+    const snapPos = new THREE.Vector3();
+    const snapQuat = new THREE.Quaternion();
+    const gripQuat = new THREE.Quaternion();
+    const gripEuler = new THREE.Euler();
+
+    const setGroupBand = (group: THREE.Group, band: number) => {
+      for (const b of banded) if (b.obj === group) b.band = band;
+    };
+
+    const attachHeld = () => {
+      if (!heldFile) return;
+      const p = pieces.get(heldFile);
+      if (!p) return;
+      if (viewRef.current === 'fp') {
+        camera.add(p.group);
+        const g = GRIP_FP[heldFile];
+        p.group.position.set(g.p[0], g.p[1], g.p[2]);
+        p.group.quaternion.setFromEuler(gripEuler.set(g.r[0], g.r[1], g.r[2]));
+      } else {
+        scene.add(p.group); // the tick snaps it to his hand
+      }
+    };
+
+    const dropPiece = (file: string, withAnim: boolean) => {
+      const p = pieces.get(file);
+      if (!p) return;
+      scene.add(p.group);
+      const dx = input.pos.x - Math.sin(input.yaw) * 0.45;
+      const dz = input.pos.z - Math.cos(input.yaw) * 0.45;
+      p.group.position.set(dx, input.ground, dz);
+      p.group.rotation.set(p.spec.lean ?? 0, input.yaw + Math.PI, 0);
+      p.state = 'dropped';
+      setGroupBand(p.group, bandOf(input.ground));
+      for (const tg of LOOK_TARGETS) {
+        if (tg.file !== file) continue;
+        const swap = Math.abs(Math.sin(p.spec.yaw)) > 0.5;
+        const hw = (swap ? p.spec.d : p.spec.w) / 2 + 0.03;
+        const hd = (swap ? p.spec.w : p.spec.d) / 2 + 0.03;
+        tg.minX = dx - hw; tg.maxX = dx + hw;
+        tg.minZ = dz - hd; tg.maxZ = dz + hd;
+        const ys: [number, number] = LOOK_Y[file] ?? [0, p.spec.h > 0 ? p.spec.h : 0.3];
+        tg.minY = input.ground + ys[0];
+        tg.maxY = input.ground + ys[1];
+        tg.gone = false;
+      }
+      if (heldFile === file) heldFile = null;
+      if (withAnim) character.playOnce('Put down / drop (ground)');
+    };
+
+    const pickupPiece = (file: string) => {
+      const p = pieces.get(file);
+      if (!p || p.state === 'held') return;
+      if (heldFile) dropPiece(heldFile, false); // swap: the old one goes down at his feet
+      heldFile = file;
+      p.state = 'held';
+      setGroupBand(p.group, -1); // a held thing is visible on every floor
+      for (const tg of LOOK_TARGETS) if (tg.file === file) tg.gone = true;
+      character.playOnce('Pick up (ground)');
+      attachHeld();
+    };
+
+    const toggleLock = (): boolean => {
       let best: Leaf | null = null;
       let bestD = Infinity;
       let bestInside = false;
@@ -806,9 +918,24 @@ export default function ModelWalk() {
       if (best && bestD < 1.3 && bestInside) {
         best.locked = !best.locked;
         character.playOnce('Use / press');
+        return true;
       }
+      return false;
     };
     lockActionRef.current = toggleLock;
+
+    // E, resolved in order: the hand item he is looking at,
+    // then a door in lock range, then putting down what he holds.
+    const interact = () => {
+      const f = lookRef.file;
+      if (f && PICKUPABLE.has(f) && f !== heldFile) {
+        pickupPiece(f);
+        return;
+      }
+      if (toggleLock()) return;
+      if (heldFile) dropPiece(heldFile, true);
+    };
+    interactActionRef.current = interact;
 
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -912,6 +1039,35 @@ export default function ModelWalk() {
       character.group.visible = viewRef.current === 'tp';
       character.update(dt, speed);
 
+      // A held piece rides him: in TP it sits in his right
+      // hand — position from the hand bone, facing from his
+      // body so the pose stays predictable. A view switch
+      // re-parents it to or from the FP viewmodel.
+      if (heldFile) {
+        if (viewRef.current !== lastHeldView) attachHeld();
+        if (viewRef.current === 'tp') {
+          const p = pieces.get(heldFile);
+          if (p) {
+            if (!handBone) {
+              handBone = character.group.getObjectByName('WeaponR')
+                ?? character.group.getObjectByName('RightHand') ?? null;
+            }
+            if (handBone) handBone.getWorldPosition(snapPos);
+            else snapPos.set(
+              input.pos.x - Math.sin(input.yaw) * 0.3,
+              input.ground + 1.0,
+              input.pos.z - Math.cos(input.yaw) * 0.3,
+            );
+            p.group.position.copy(snapPos);
+            snapQuat.setFromEuler(gripEuler.set(0, input.yaw + Math.PI, 0));
+            const g = GRIP_TP[heldFile];
+            gripQuat.setFromEuler(gripEuler.set(g[0], g[1], g[2]));
+            p.group.quaternion.copy(snapQuat).multiply(gripQuat);
+          }
+        }
+      }
+      lastHeldView = viewRef.current;
+
       camera.rotation.set(input.pitch, input.yaw, 0);
       if (viewRef.current === 'tp') {
         // Pull the camera back along the look direction, aimed
@@ -1009,10 +1165,12 @@ export default function ModelWalk() {
           if (h < limit) limit = h;
         }
         let found: string | null = null;
+        let foundTg: LookTarget | null = null;
         let bestT = limit;
         for (const tg of LOOK_TARGETS) {
+          if (tg.gone) continue;
           const h = rayBoxT(o.x, o.y, o.z, dir.x, dir.y, dir.z, tg);
-          if (h < bestT) { bestT = h; found = tg.name; }
+          if (h < bestT) { bestT = h; found = tg.name; foundTg = tg; }
         }
         for (const b of boxes) {
           if (b.doorIdx === undefined) continue;
@@ -1022,11 +1180,33 @@ export default function ModelWalk() {
           if (h < bestT) {
             bestT = h;
             found = (DOOR_NAMES[leaf.spec.id] ?? 'Door') + (leaf.locked ? ' — Locked' : '');
+            foundTg = null;
           }
         }
         if (found !== lastLook) {
           lastLook = found;
           setLookLabel(found);
+        }
+        // The interact read: the winning target is actionable
+        // only if it is a hand item within reach of HIM (his
+        // chest), not merely of the camera.
+        lookRef.file = null;
+        if (foundTg?.file && PICKUPABLE.has(foundTg.file)) {
+          const cx = (foundTg.minX + foundTg.maxX) / 2;
+          const cy = (foundTg.minY + foundTg.maxY) / 2;
+          const cz = (foundTg.minZ + foundTg.maxZ) / 2;
+          const d = Math.hypot(cx - input.pos.x, cy - (input.ground + 1.2), cz - input.pos.z);
+          if (d <= 2.4) lookRef.file = foundTg.file;
+        }
+        let iNote: string | null = null;
+        if (lookRef.file && lookRef.file !== heldFile) {
+          iNote = `${heldFile ? 'Swap for' : 'Pick up'} ${LOOK_NAMES[lookRef.file]}`;
+        } else if (heldFile && !note) {
+          iNote = `Put down ${LOOK_NAMES[heldFile]}`;
+        }
+        if (iNote !== lastInteractNote) {
+          lastInteractNote = iNote;
+          setInteractNote(iNote);
         }
       }
 
@@ -1043,7 +1223,7 @@ export default function ModelWalk() {
     window.addEventListener('keydown', kd);
     window.addEventListener('keyup', ku);
     const onLockKey = (e: KeyboardEvent) => {
-      if (e.code === 'KeyE') toggleLock();
+      if (e.code === 'KeyE') interact();
     };
     window.addEventListener('keydown', onLockKey);
     const onViewKey = (e: KeyboardEvent) => {
@@ -1154,6 +1334,9 @@ export default function ModelWalk() {
               group.position.set(spec.cx, fy, spec.cz);
               scene.add(group);
               banded.push({ obj: group, band: bandOf(fy) });
+              if (PICKUPABLE.has(spec.file)) {
+                pieces.set(spec.file, { spec, group, state: 'placed' });
+              }
               if (spec.boxes) {
                 for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
                   boxes.push({ minX, maxX, minZ, maxZ, minY: fy, maxY: fy + spec.h });
@@ -1202,6 +1385,8 @@ export default function ModelWalk() {
 
     return () => {
       disposed = true;
+      // Undo any pickup/drop edits to the module-level targets.
+      LOOK_TARGETS.forEach((t, i) => Object.assign(t, LOOK_HOME[i]));
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('keydown', kd);
@@ -1307,7 +1492,7 @@ export default function ModelWalk() {
           fontSize: '0.8rem', opacity: 0.85, textAlign: 'right',
         }}
       >
-        {isTouch ? 'Left thumb: move · drag: look' : 'Click: look · WASD: move · Shift: run · E: lock / unlock · V: view'}
+        {isTouch ? 'Left thumb: move · drag: look' : 'Click: look · WASD: move · Shift: run · E: interact / lock · V: view'}
       </div>
 
       {/* First / third person toggle (the character is visible in third). */}
@@ -1364,6 +1549,32 @@ export default function ModelWalk() {
         >
           {lookLabel}
         </div>
+      )}
+
+      {/* Interact prompt: what E will do right now. */}
+      {interactNote && (
+        <div
+          style={{
+            position: 'absolute', left: '50%', top: 'calc(50% + 54px)',
+            transform: 'translateX(-50%)', pointerEvents: 'none',
+            padding: '0.3rem 0.7rem', background: 'rgba(52,42,18,0.8)',
+            fontSize: '0.9rem', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+          }}
+        >
+          {isTouch ? interactNote : `E — ${interactNote}`}
+        </div>
+      )}
+      {isTouch && interactNote && (
+        <button
+          onClick={() => interactActionRef.current?.()}
+          style={{
+            position: 'absolute', right: 12, bottom: 120, minHeight: 48,
+            padding: '0.5rem 1rem', background: 'rgba(20,18,14,0.85)', color: '#e8e4da',
+            border: '1px solid rgba(232,228,218,0.4)', fontSize: '0.95rem', letterSpacing: '0.04em',
+          }}
+        >
+          {interactNote}
+        </button>
       )}
 
       {doorNote === 'Lock door' || doorNote === 'Unlock door' ? (
