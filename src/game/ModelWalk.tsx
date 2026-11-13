@@ -581,6 +581,7 @@ export default function ModelWalk() {
     stickVec: { x: 0, y: 0, mag: 0 },
     pos: new THREE.Vector3(4.6, 2.5, 1.6),
     ground: 2.5,
+    tpDist: 3.0, // third-person boom length; the wheel trims it
   });
   const stickPointerRef = useRef<number | null>(null);
   const stickOriginRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -650,6 +651,20 @@ export default function ModelWalk() {
     // between the floor planes (-2.4 / 0.1 / 2.6).
     const bandOf = (y: number): number => (y < -1.15 ? 0 : y < 1.35 ? 1 : 2);
     const banded: { obj: THREE.Object3D; band: number }[] = [];
+
+    // Third-person wall fade (Adam's pick, 2026-11-13): in TP,
+    // the house pieces the camera-to-Goodguy line crosses fade
+    // to a ghost so small rooms stay readable when he tilts
+    // down — the alternative he rejected was jamming the camera
+    // inside the player's room. House materials are cloned per
+    // piece at load so one wall can fade without taking its
+    // material siblings with it.
+    const houseMeshes: THREE.Mesh[] = [];
+    const fadeState = new Map<THREE.Mesh, { target: number }>();
+    const fadeRay = new THREE.Raycaster();
+    const fadeOrigin = new THREE.Vector3();
+    const fadeVec = new THREE.Vector3();
+    const FADE_OPACITY = 0.15;
 
     // The yard at grade (his y=0 is the ground outside).
     const groundDisc = new THREE.Mesh(
@@ -908,9 +923,9 @@ export default function ModelWalk() {
         const tx = input.pos.x;
         const ty = input.ground + 1.55;
         const tz = input.pos.z;
-        let cx = tx - dir.x * 3.0;
-        let cy = ty - dir.y * 3.0 + 0.3;
-        let cz = tz - dir.z * 3.0;
+        let cx = tx - dir.x * input.tpDist;
+        let cy = ty - dir.y * input.tpDist + 0.3;
+        let cz = tz - dir.z * input.tpDist;
         let tMax = 1;
         for (const w of walls) {
           if (w.maxY < cy - 0.2 || w.minY > cy + 0.2) continue;
@@ -936,6 +951,44 @@ export default function ModelWalk() {
         camera.position.set(cx, cy, cz);
       } else {
         camera.position.set(input.pos.x, input.ground + EYE, input.pos.z);
+      }
+
+      // TP wall fade: whatever house geometry sits between the
+      // camera and Goodguy's chest ghosts out; everything else
+      // eases back to solid. First person never fades.
+      {
+        const want = new Set<THREE.Mesh>();
+        if (viewRef.current === 'tp' && houseMeshes.length > 0) {
+          fadeOrigin.set(input.pos.x, input.ground + 1.4, input.pos.z);
+          fadeVec.copy(camera.position).sub(fadeOrigin);
+          const dist = fadeVec.length();
+          if (dist > 0.5) {
+            fadeRay.set(fadeOrigin, fadeVec.normalize());
+            fadeRay.near = 0.25;
+            fadeRay.far = dist - 0.12;
+            const visible = houseMeshes.filter((m) => m.visible);
+            for (const hit of fadeRay.intersectObjects(visible, false)) {
+              want.add(hit.object as THREE.Mesh);
+            }
+          }
+        }
+        for (const mesh of want) {
+          if (!fadeState.has(mesh)) fadeState.set(mesh, { target: FADE_OPACITY });
+          else fadeState.get(mesh)!.target = FADE_OPACITY;
+        }
+        for (const [mesh, st] of fadeState) {
+          if (!want.has(mesh)) st.target = 1;
+          const mats = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as THREE.MeshStandardMaterial[];
+          const cur = mats[0].opacity;
+          let next = cur + (st.target - cur) * Math.min(1, dt * 9);
+          if (Math.abs(st.target - next) < 0.01) next = st.target;
+          for (const m of mats) {
+            m.opacity = next;
+            m.transparent = next < 0.999;
+            m.depthWrite = next >= 0.999;
+          }
+          if (st.target === 1 && next === 1) fadeState.delete(mesh);
+        }
       }
 
       const label = zoneAt(input.pos.x, input.pos.z, input.ground);
@@ -1003,6 +1056,15 @@ export default function ModelWalk() {
       input.pitch = Math.max(-1.35, Math.min(1.35, input.pitch - e.movementY * 0.0022));
     };
     document.addEventListener('mousemove', onMouseMove);
+    // Mouse wheel trims the third-person boom (Adam, 2026-11-13):
+    // scroll in to bring the camera closer, out to pull it back.
+    const onWheel = (e: WheelEvent) => {
+      if (viewRef.current !== 'tp') return;
+      e.preventDefault();
+      const step = e.deltaY > 0 ? 0.35 : -0.35;
+      input.tpDist = Math.max(1.2, Math.min(4.5, input.tpDist + step));
+    };
+    renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
     const onCanvasClick = () => {
       if (window.matchMedia('(pointer: fine)').matches) {
         renderer.domElement.requestPointerLock();
@@ -1054,6 +1116,10 @@ export default function ModelWalk() {
             if (!mesh.isMesh || locators.has(obj)) return;
             tmpBox.setFromObject(mesh);
             banded.push({ obj, band: bandOf((tmpBox.min.y + tmpBox.max.y) / 2) });
+            // Per-piece material clones for the TP wall fade.
+            const mat = mesh.material as THREE.Material | THREE.Material[];
+            mesh.material = Array.isArray(mat) ? mat.map((m) => m.clone()) : mat.clone();
+            houseMeshes.push(mesh);
           });
         }
         buildLeaves();
@@ -1144,6 +1210,7 @@ export default function ModelWalk() {
       window.removeEventListener('keydown', onViewKey);
       document.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('click', onCanvasClick);
+      renderer.domElement.removeEventListener('wheel', onWheel);
       if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
       renderer.dispose();
       mount.removeChild(renderer.domElement);

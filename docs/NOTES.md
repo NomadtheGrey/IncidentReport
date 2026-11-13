@@ -3,6 +3,8 @@
 Working state, dimensions, standards, and open questions. Maintained
 as we go. Intentions and pinned rulings live in INTENTIONS.md.
 
+- **Third-person camera TLC (Adam, 2026-11-13): wall fade + wheel zoom.** In TP, the house pieces the camera-to-Goodguy line crosses now fade to a ghost (opacity 0.15) and ease back when clear — his pick over jamming the camera inside the player's room; the bathroom tilt-down case that prompted it now shows him through the faded wall. House materials are cloned per piece at load so one wall can fade alone. First person never fades. The mouse wheel also trims the TP boom (1.2–4.5 m, default 3.0). Verified by staged drives (bathroom fade + living-room control + wheel readout 3.0 → 2.3).
+
 ## House dimensions (the game as built, layout v3.1)
 
 - Shell 12 × 9m: x −6..6, z −4.5..4.5. Floors 3.0m apart (the game's
