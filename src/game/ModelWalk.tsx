@@ -308,6 +308,120 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 0.5, cz: 4.39, yaw: Math.PI, box: false, y: -2.1 },
 ];
 
+// ---- Look tags -----------------------------------------------------
+// "What am I looking at?" (Adam, 2026-11-13): a tag under the
+// centre of the screen names the nearest identifiable thing the
+// view centres on. Targets are boxes derived from the furniture
+// specs and the door leaves; a centre ray picks the nearest one
+// that no wall triangle hides. Identification only — no physics.
+const LOOK_NAMES: Record<string, string> = {
+  vanity: 'Vanity', mirror: 'Mirror', toilet: 'Toilet', bathtub: 'Bathtub',
+  'bed-king': 'Bed', 'bed-full': 'Bed', nightstand: 'Nightstand', dresser: 'Dresser',
+  'dining-table': 'Dining Table', 'dining-chair': 'Dining Chair',
+  'couch-3seat': 'Couch', 'couch-2seat': 'Couch',
+  'entertainment-center': 'Entertainment Center', 'curio-cabinet': 'Curio Cabinet',
+  'floor-lamp': 'Floor Lamp',
+  'kitchen-run-south': 'Kitchen Counter', 'kitchen-run-east': 'Kitchen Counter',
+  'kitchen-wall-south': 'Kitchen Cabinets', 'kitchen-wall-east': 'Kitchen Cabinets',
+  skillet: 'Cast Iron Skillet', pot: 'Pot', 'claw-hammer': 'Claw Hammer',
+  'duct-tape': 'Duct Tape', 'fire-extinguisher': 'Fire Extinguisher',
+  'extension-cord': 'Extension Cord', ashtray: 'Ashtray', phone: 'Phone',
+  'clothes-iron': 'Clothes Iron', 'baseball-bat': 'Baseball Bat', plunger: 'Plunger',
+  shovel: 'Shovel', 'ceiling-fan': 'Ceiling Fan', 'smoke-detector': 'Smoke Detector',
+  range: 'Range', fridge: 'Fridge', furnace: 'Furnace', 'water-heater': 'Water Heater',
+  'towel-rail': 'Towel Rail', thermostat: 'Thermostat',
+  'switch-plate': 'Light Switch', 'outlet-plate': 'Outlet',
+};
+// Vertical spans for pieces whose spec height is 0 or whose bulk
+// hangs/floats off the placement height: [below, above] the spec y.
+const LOOK_Y: Record<string, [number, number]> = {
+  'ceiling-fan': [-0.42, 0.02], 'smoke-detector': [-0.12, 0.02],
+  mirror: [1.02, 2.14], 'towel-rail': [0.7, 1.48],
+  'kitchen-wall-south': [1.75, 2.45], 'kitchen-wall-east': [1.75, 2.45],
+  'switch-plate': [-0.09, 0.09], 'outlet-plate': [-0.09, 0.09], thermostat: [-0.1, 0.1],
+  shovel: [0, 1.35],
+};
+const DOOR_NAMES: Record<string, string> = {
+  clarissa: 'Bedroom 1 Door', breanna: 'Bedroom 2 Door', bathroom: 'Bathroom Door',
+  darleen: 'Master Bedroom Door', 'darleens-closet': 'Master Closet Door',
+  'basement-room': 'Basement Room Door',
+};
+
+interface LookTarget {
+  name: string;
+  minX: number; maxX: number; minZ: number; maxZ: number; minY: number; maxY: number;
+}
+
+const LOOK_TARGETS: LookTarget[] = [];
+for (const spec of FURNITURE) {
+  const name = LOOK_NAMES[spec.file];
+  if (!name) continue;
+  const fy = spec.y ?? FURN_Y;
+  const ys: [number, number] = LOOK_Y[spec.file] ?? [0, spec.h > 0 ? spec.h : 0.3];
+  if (spec.boxes) {
+    for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
+      LOOK_TARGETS.push({
+        name, minX: minX - 0.02, maxX: maxX + 0.02, minZ: minZ - 0.02, maxZ: maxZ + 0.02,
+        minY: fy + ys[0], maxY: fy + ys[1],
+      });
+    }
+    continue;
+  }
+  const swap = Math.abs(Math.sin(spec.yaw)) > 0.5;
+  const hw = (swap ? spec.d : spec.w) / 2 + 0.03;
+  const hd = (swap ? spec.w : spec.d) / 2 + 0.03;
+  LOOK_TARGETS.push({
+    name,
+    minX: spec.cx - hw, maxX: spec.cx + hw, minZ: spec.cz - hd, maxZ: spec.cz + hd,
+    minY: fy + ys[0], maxY: fy + ys[1],
+  });
+}
+
+// Ray vs AABB (slab test): the entry distance, or Infinity.
+function rayBoxT(
+  ox: number, oy: number, oz: number, dx: number, dy: number, dz: number,
+  b: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number },
+): number {
+  let t0 = 0;
+  let t1 = Infinity;
+  const axes: [number, number, number, number][] = [
+    [ox, dx, b.minX, b.maxX], [oy, dy, b.minY, b.maxY], [oz, dz, b.minZ, b.maxZ],
+  ];
+  for (const [o, d, mn, mx] of axes) {
+    if (Math.abs(d) < 1e-9) {
+      if (o < mn || o > mx) return Infinity;
+    } else {
+      let ta = (mn - o) / d;
+      let tb = (mx - o) / d;
+      if (ta > tb) { const tmp = ta; ta = tb; tb = tmp; }
+      t0 = Math.max(t0, ta);
+      t1 = Math.min(t1, tb);
+      if (t0 > t1) return Infinity;
+    }
+  }
+  return t0;
+}
+
+// Ray vs triangle (Möller–Trumbore, double-sided): distance or Infinity.
+function rayTriT(
+  ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, t: Tri,
+): number {
+  const e1x = t.bx - t.ax, e1y = t.by - t.ay, e1z = t.bz - t.az;
+  const e2x = t.cx - t.ax, e2y = t.cy - t.ay, e2z = t.cz - t.az;
+  const px = dy * e2z - dz * e2y, py = dz * e2x - dx * e2z, pz = dx * e2y - dy * e2x;
+  const det = e1x * px + e1y * py + e1z * pz;
+  if (Math.abs(det) < 1e-10) return Infinity;
+  const inv = 1 / det;
+  const sx = ox - t.ax, sy = oy - t.ay, sz = oz - t.az;
+  const u = (sx * px + sy * py + sz * pz) * inv;
+  if (u < 0 || u > 1) return Infinity;
+  const qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+  const v = (dx * qx + dy * qy + dz * qz) * inv;
+  if (v < 0 || u + v > 1) return Infinity;
+  const hit = (e2x * qx + e2y * qy + e2z * qz) * inv;
+  return hit > 1e-6 ? hit : Infinity;
+}
+
 function extractTris(
   root: THREE.Object3D,
   skip?: Set<THREE.Object3D>,
@@ -428,6 +542,7 @@ export default function ModelWalk() {
   const mountRef = useRef<HTMLDivElement>(null);
   const [roomName, setRoomName] = useState('Master Bedroom');
   const [doorNote, setDoorNote] = useState<string | null>(null);
+  const [lookLabel, setLookLabel] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const lockActionRef = useRef<(() => void) | null>(null);
@@ -624,6 +739,7 @@ export default function ModelWalk() {
     let lastRoom = '';
     let lastVisKey = -99;
     let lastDoorNote: string | null = null;
+    let lastLook: string | null = null;
 
     const isInside = (leaf: Leaf): boolean => {
       const off = leaf.spec.wallAxis === 'x'
@@ -802,6 +918,39 @@ export default function ModelWalk() {
       if (label !== lastRoom) {
         lastRoom = label;
         setRoomName(label);
+      }
+
+      // Look tag: name the nearest identifiable thing at the
+      // centre of the view that no wall hides.
+      {
+        const dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
+        const o = camera.position;
+        let limit = viewRef.current === 'tp' ? 5.0 : 2.75;
+        for (const t of walls) {
+          const h = rayTriT(o.x, o.y, o.z, dir.x, dir.y, dir.z, t);
+          if (h < limit) limit = h;
+        }
+        let found: string | null = null;
+        let bestT = limit;
+        for (const tg of LOOK_TARGETS) {
+          const h = rayBoxT(o.x, o.y, o.z, dir.x, dir.y, dir.z, tg);
+          if (h < bestT) { bestT = h; found = tg.name; }
+        }
+        for (const b of boxes) {
+          if (b.doorIdx === undefined) continue;
+          const leaf = leaves[b.doorIdx];
+          if (!leaf || leaf.open01 > 0.5) continue;
+          const h = rayBoxT(o.x, o.y, o.z, dir.x, dir.y, dir.z, b);
+          if (h < bestT) {
+            bestT = h;
+            found = (DOOR_NAMES[leaf.spec.id] ?? 'Door') + (leaf.locked ? ' — Locked' : '');
+          }
+        }
+        if (found !== lastLook) {
+          lastLook = found;
+          setLookLabel(found);
+        }
       }
 
       renderer.render(scene, camera);
@@ -1102,6 +1251,27 @@ export default function ModelWalk() {
           }}
         >
           The model failed to load: {loadError}
+        </div>
+      )}
+
+      {/* Centre dot + look tag: what the view is centred on. */}
+      <div
+        style={{
+          position: 'absolute', left: '50%', top: '50%', width: 6, height: 6,
+          borderRadius: '50%', background: 'rgba(232,228,218,0.55)',
+          transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+        }}
+      />
+      {lookLabel && (
+        <div
+          style={{
+            position: 'absolute', left: '50%', top: 'calc(50% + 18px)',
+            transform: 'translateX(-50%)', pointerEvents: 'none',
+            padding: '0.3rem 0.7rem', background: 'rgba(10,10,12,0.66)',
+            fontSize: '0.9rem', letterSpacing: '0.05em', whiteSpace: 'nowrap',
+          }}
+        >
+          {lookLabel}
         </div>
       )}
 
