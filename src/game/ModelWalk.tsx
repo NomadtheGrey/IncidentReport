@@ -214,7 +214,10 @@ const FURNITURE: FurnitureSpec[] = [
   // them facing the 2-seat; curio back on the hall spine (face 0).
   { file: 'couch-3seat', lc: [0, 0.0297], w: 2.3, d: 0.95, h: 0.92, cx: -5.425, cz: 2.55, yaw: Math.PI / 2, box: true, y: 0.1 },
   { file: 'couch-2seat', lc: [0, 0.0297], w: 1.7, d: 0.95, h: 0.92, cx: -1.45, cz: 3.925, yaw: Math.PI, box: true, y: 0.1 },
-  { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 1.46, cx: -1.45, cz: 0.85, yaw: 0, box: true, y: 0.1 },
+  { file: 'entertainment-center', lc: [0, 0.01515], w: 1.94, d: 0.49, h: 0.55, cx: -1.45, cz: 0.85, yaw: 0, box: true, y: 0.1 },
+  // The TV is its own model since Models' split (2026-11-13):
+  // same frame as the cabinet, seated on its top (0.1 + 0.55).
+  { file: 'tv', lc: [0, 0.01515], w: 1.4, d: 0.26, h: 0.91, cx: -1.45, cz: 0.85, yaw: 0, box: false, y: 0.65 },
   { file: 'curio-cabinet', lc: [0, 0.0119], w: 0.9, d: 0.4, h: 1.96, cx: -0.2, cz: -2.95, yaw: -Math.PI / 2, box: true, y: 0.1 },
   // The floor lamp (Adam remembered it after the batch): in the
   // corner at the 3-seat couch's north end. The extension cord's
@@ -332,7 +335,7 @@ const LOOK_NAMES: Record<string, string> = {
   'bed-king': 'Bed', 'bed-full': 'Bed', nightstand: 'Nightstand', dresser: 'Dresser',
   'dining-table': 'Dining Table', 'dining-chair': 'Dining Chair',
   'couch-3seat': 'Couch', 'couch-2seat': 'Couch',
-  'entertainment-center': 'Entertainment Center', 'curio-cabinet': 'Curio Cabinet',
+  'entertainment-center': 'Entertainment Center', tv: 'TV', 'curio-cabinet': 'Curio Cabinet',
   'floor-lamp': 'Floor Lamp',
   'kitchen-run-south': 'Kitchen Counter', 'kitchen-run-east': 'Kitchen Counter',
   'kitchen-wall-south': 'Kitchen Cabinets', 'kitchen-wall-east': 'Kitchen Cabinets',

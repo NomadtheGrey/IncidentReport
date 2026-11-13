@@ -469,3 +469,10 @@ these, not the other way round.
   Still open on Adam's side: the two exact-copy 'cube' pieces
   on the west cross-wall line (his x 0.00..0.10) are both still
   doubled in this export — parked until he finds them.
+- **Entertainment center / TV split (2026-11-13, Models)**:
+  Adam wanted them as two distinct models. The cabinet-only
+  entertainment-center replaced the combined piece (same
+  footprint and origin; its spec height is now the cabinet's
+  0.55) and the TV stands as its own spec on the cabinet top
+  (y 0.65), look-tagged 'TV'. Verified in a staged view: TV
+  seated on the cabinet, tag reads TV.
