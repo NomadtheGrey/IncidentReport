@@ -597,3 +597,17 @@ these, not the other way round.
   exactly (y 1.07..2.10, flush at both wall faces), the glass
   reads pale through the curtain gap at night, look tag
   'Window', boot smoke clean.
+
+- **Range hood rebuilt, household style (Adam's correction,
+  2026-11-14).** The Pack A hood was a stepped pro canopy with
+  a full-height chimney; Adam sent a photo of a real household
+  under-cabinet hood ("a household oven hood looks more like
+  so") and Models rebuilt it to match: a slim stainless band
+  (grille slots, a small display, three buttons on the front
+  face) over a flared capture shell, mouth 0.82 x 0.50 at local
+  y ~1.54, top band ending exactly at the 1.80 cabinet-bottom
+  line, no chimney. It tucks under the wall cabinet that
+  already stands over the range — Adam offered more cabinets
+  if needed; none were. The warm light is now a strip under
+  the front lip; DEV re-aimed the fixture light to match and
+  shrank the look span to the new body. Toggle drive-verified.
