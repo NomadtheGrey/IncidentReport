@@ -480,3 +480,44 @@ these, not the other way round.
   0.55) and the TV stands as its own spec on the cabinet top
   (y 0.65), look-tagged 'TV'. Verified in a staged view: TV
   seated on the cabinet, tag reads TV.
+- **Pickup fixes + new model + exploded ceilings (2026-11-14,
+  from Adam's playtest of merge #16)**: (1) Adam's new export
+  swapped in — the upstairs landing no longer pokes through the
+  stairwell walls (z -1.75..0.75 -> -1.60..0.70) and a roof slab
+  now caps the upstairs (y 5.0..5.1). Colours re-applied. The
+  two west cross-wall 'cube' dupes are still doubled (parked,
+  Adam's list). The main-floor slab's south edge still juts
+  ~0.2 m over the basement landing's south lane at y 0..0.1
+  (the z -1.4 face) — reported to Adam as a candidate for his
+  mystery basement-stair faces. (2) The east kitchen run and
+  wall cabinets no longer bleed into the stairwell: their spec
+  centres moved 0.12 south (run-east cz -3.06, wall-east cz
+  -2.03) — their old ends crossed the shaft wall face at
+  z -1.60 and the run's collider was the invisible wall that
+  blocked the basement landing. DEV's corrections brief had
+  told Models the wrong end line (-1.50); owned. Side effect:
+  the run's south end now passes ~2 cm through the south wall's
+  outer face — an invisible exterior sliver. (3) Put-down is
+  surface-aware: a dropped item lands on the highest furniture
+  top under it (the range's cooktop, the kitchen counter —
+  whose surface reads from its own box, not the faucet-height
+  collider top), and the shovel only keeps its lean when a
+  support stands near the drop point, otherwise it lies flat.
+  (4) Grip retunes by screenshot: bat flipped end-for-end,
+  skillet raised level, plunger cup-up, shovel now gripped
+  mid-shaft via a per-item slide inside the held group (its
+  blade was a speck at the end of a 1.35 m shaft). (5) Door
+  look tags are floor-gated like the leaves themselves — an
+  upstairs door can no longer be tagged through the shaft.
+  (6) The Snip-6 'arms stuck out' report was the Idle clip's
+  natural stance seen from above — verified with a fresh-spawn
+  control shot; not a layering bug. (7) Exploded view rebuilt
+  on per-triangle band filtering: ceiling faces (the underside
+  of the slab above each band, plus the roof slab's top on the
+  upstairs band) are dropped, so every band reads as an open
+  tray with its floor layout visible — Adam's ruling: ceilings
+  must not obscure. (8) Third-person ceilings: wall-fade now
+  also ghosts any house piece whose box contains the camera,
+  and the fade ray reaches the full boom — a ceiling slab the
+  camera rises into can no longer fill the screen (Adam's
+  rule, 2026-11-14).

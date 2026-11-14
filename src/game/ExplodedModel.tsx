@@ -107,37 +107,91 @@ export default function ExplodedModel() {
     const loader = new GLTFLoader();
     loader.load('models/all-floors.gltf', (gltf) => {
       if (disposed) return;
-      for (const band of BANDS) {
-        const holder = new THREE.Group();
-        // Same placement as ModelWalk's holder.
-        holder.scale.set(-16, 16, 16);
-        holder.rotation.y = Math.PI / 2;
-        holder.position.set(0, band.offset, 0.5);
-        const copy = gltf.scene.clone(true);
-        const lo = band.lo + band.offset;
-        const hi = band.hi + band.offset;
-        const planes = [
-          new THREE.Plane(new THREE.Vector3(0, 1, 0), -lo),
-          new THREE.Plane(new THREE.Vector3(0, -1, 0), hi),
-        ];
-        copy.traverse((o) => {
-          // Adam's furniture location markers are planning aids, not
-          // house — hide them here too.
-          if (o.name === 'Locators' || o.name.endsWith('Loc')) {
-            o.visible = false;
-          }
-          const mesh = o as THREE.Mesh;
-          if (mesh.isMesh) {
-            const src = mesh.material as THREE.Material;
-            const mat = src.clone() as THREE.MeshStandardMaterial;
-            mat.side = THREE.DoubleSide;
-            mat.clippingPlanes = planes;
-            mesh.material = mat;
-          }
-        });
-        holder.add(copy);
-        scene.add(holder);
+      // Build each band from the model's triangles directly (the
+      // same holder transform as ModelWalk: game x = file z * 16,
+      // game z = file x * 16 + 0.5). A band keeps a triangle when
+      // its centroid sits inside the band — EXCEPT ceiling faces:
+      // a downward-facing horizontal triangle within 0.13 of the
+      // band's top is the underside of the slab above, and Adam
+      // ruled (2026-11-14) that ceilings must not cap the bands
+      // and hide the floor layout. Treads face up and stay; the
+      // slab's own top face is the NEXT band's floor and stays
+      // there.
+      const holder = new THREE.Group();
+      holder.scale.set(-16, 16, 16);
+      holder.rotation.y = Math.PI / 2;
+      holder.position.set(0, 0, 0.5);
+      holder.add(gltf.scene);
+      holder.updateMatrixWorld(true);
+      interface BandAcc {
+        byMat: Map<THREE.Material, { pos: number[]; nor: number[] }>;
       }
+      const accs: BandAcc[] = BANDS.map(() => ({ byMat: new Map() }));
+      const va = new THREE.Vector3();
+      const vb = new THREE.Vector3();
+      const vc = new THREE.Vector3();
+      const na = new THREE.Vector3();
+      const nm = new THREE.Matrix3();
+      gltf.scene.traverse((o) => {
+        // Adam's furniture location markers are planning aids, not
+        // house — skip them here too.
+        if (o.name === 'Locators' || o.name.endsWith('Loc')) return;
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const geo = mesh.geometry as THREE.BufferGeometry;
+        const posAttr = geo.getAttribute('position');
+        const norAttr = geo.getAttribute('normal');
+        const index = geo.getIndex();
+        const mat = mesh.material as THREE.Material;
+        nm.getNormalMatrix(mesh.matrixWorld);
+        const triCount = index ? index.count / 3 : posAttr.count / 3;
+        for (let t = 0; t < triCount; t++) {
+          const ids = index
+            ? [index.getX(t * 3), index.getX(t * 3 + 1), index.getX(t * 3 + 2)]
+            : [t * 3, t * 3 + 1, t * 3 + 2];
+          const pts = ids.map((vi, k) => {
+            const v = new THREE.Vector3().fromBufferAttribute(posAttr, vi);
+            v.applyMatrix4(mesh.matrixWorld);
+            const n = new THREE.Vector3().fromBufferAttribute(norAttr, vi);
+            n.applyMatrix3(nm).normalize();
+            return { v, n, k };
+          });
+          va.copy(pts[0].v); vb.copy(pts[1].v); vc.copy(pts[2].v);
+          na.copy(pts[0].n).add(pts[1].n).add(pts[2].n).normalize();
+          const cy = (va.y + vb.y + vc.y) / 3;
+          const bi = BANDS.findIndex((b) => cy >= b.lo && cy < b.hi);
+          if (bi < 0) continue;
+          const band = BANDS[bi];
+          // Ceiling face: horizontal, facing down, hugging the
+          // band's top — the slab above showing its underside.
+          if (na.y < -0.5 && cy > band.hi - 0.13) continue;
+          // The roof slab caps the top band from above the same
+          // way; its up-facing top goes too.
+          if (bi === BANDS.length - 1 && na.y > 0.5 && cy > band.hi - 0.23) continue;
+          let acc = accs[bi].byMat.get(mat);
+          if (!acc) {
+            acc = { pos: [], nor: [] };
+            accs[bi].byMat.set(mat, acc);
+          }
+          for (const p of pts) {
+            acc.pos.push(p.v.x, p.v.y + band.offset, p.v.z);
+            acc.nor.push(p.n.x, p.n.y, p.n.z);
+          }
+        }
+      });
+      accs.forEach((acc, bi) => {
+        const bandGroup = new THREE.Group();
+        for (const [mat, data] of acc.byMat) {
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.Float32BufferAttribute(data.pos, 3));
+          g.setAttribute('normal', new THREE.Float32BufferAttribute(data.nor, 3));
+          const m = (mat as THREE.Material).clone() as THREE.MeshStandardMaterial;
+          m.side = THREE.DoubleSide;
+          bandGroup.add(new THREE.Mesh(g, m));
+        }
+        scene.add(bandGroup);
+        void bi;
+      });
     });
 
     // Label anchors: east edge of each band, mid-height.

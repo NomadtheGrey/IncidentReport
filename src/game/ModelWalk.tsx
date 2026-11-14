@@ -230,8 +230,8 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'kitchen-run-south', lc: [0.13125, 0.0203], w: 4.24, d: 0.65, h: 0.905, cx: 3.25, cz: -4.075, yaw: 0, box: true, y: 0.1,
     boxes: [[1.11, 3.0, -4.42, -3.73], [4.76, 5.39, -4.42, -3.73]] },
   { file: 'kitchen-wall-south', lc: [0.10315, 0.01195], w: 3.32, d: 0.38, h: 0, cx: 2.79, cz: -4.21, yaw: 0, box: false, y: 0.1 },
-  { file: 'kitchen-run-east', lc: [0.09005, 0.0194], w: 2.92, d: 0.62, h: 1.16, cx: 5.59, cz: -2.94, yaw: -Math.PI / 2, box: true, y: 0.1 },
-  { file: 'kitchen-wall-east', lc: [0.1547, 0.01195], w: 0.85, d: 0.38, h: 0, cx: 5.71, cz: -1.9, yaw: -Math.PI / 2, box: false, y: 0.1 },
+  { file: 'kitchen-run-east', lc: [0.09005, 0.0194], w: 2.92, d: 0.62, h: 1.16, cx: 5.59, cz: -3.06, yaw: -Math.PI / 2, box: true, y: 0.1 },
+  { file: 'kitchen-wall-east', lc: [0.1547, 0.01195], w: 0.85, d: 0.38, h: 0, cx: 5.71, cz: -2.03, yaw: -Math.PI / 2, box: false, y: 0.1 },
   // ---- The day-one items (objects batch), in their pinned or
   // sensible places (Adam, 2026-11-12: "add more stuff"). Small
   // props carry no colliders — you brush past a skillet.
@@ -381,17 +381,17 @@ const PICKUPABLE = new Set([
 // First-pass grips, to be tuned by eye: FP = camera-local
 // viewmodel pose; TP = extra rotation on top of his facing
 // while the piece rides his right hand.
-const GRIP_FP: Record<string, { p: [number, number, number]; r: [number, number, number] }> = {
-  skillet: { p: [0.27, -0.25, -0.5], r: [-0.45, 0.1, 0.1] },
+const GRIP_FP: Record<string, { p: [number, number, number]; r: [number, number, number]; s?: [number, number, number] }> = {
+  skillet: { p: [0.27, -0.25, -0.5], r: [0.25, 0.1, 0.1] },
   pot: { p: [0.3, -0.3, -0.55], r: [0.1, 0, 0] },
   'claw-hammer': { p: [0.26, -0.24, -0.45], r: [0.5, 0, -0.35] },
   'fire-extinguisher': { p: [0.3, -0.32, -0.5], r: [0, 0, 0] },
-  'baseball-bat': { p: [0.3, -0.26, -0.5], r: [0.85, 0, -0.55] },
-  plunger: { p: [0.27, -0.28, -0.5], r: [0.65, 0, -0.2] },
-  shovel: { p: [0.3, -0.27, -0.55], r: [0.8, 0, -0.3] },
+  'baseball-bat': { p: [0.3, -0.26, -0.5], r: [-2.29, 0, -0.55] },
+  plunger: { p: [0.27, -0.2, -0.5], r: [-0.55, 0, 0.15] },
+  shovel: { p: [0.32, -0.3, -0.6], r: [-2.0, 0, -0.15], s: [0, 0, 0.5] },
 };
 const GRIP_TP: Record<string, [number, number, number]> = {
-  skillet: [1.35, 0, 0],
+  skillet: [1.35, 0, 0.55],
   pot: [0.3, 0, 0],
   'claw-hammer': [1.1, 0, 0.2],
   'fire-extinguisher': [0.2, 0, 0],
@@ -589,6 +589,7 @@ interface Leaf {
 interface Box {
   minX: number; maxX: number; minZ: number; maxZ: number;
   minY: number; maxY: number; doorIdx?: number;
+  file?: string; // the furniture spec this box came from, if any
 }
 
 export default function ModelWalk() {
@@ -851,26 +852,76 @@ export default function ModelWalk() {
       if (!heldFile) return;
       const p = pieces.get(heldFile);
       if (!p) return;
+      const inner = p.group.children[0];
       if (viewRef.current === 'fp') {
         camera.add(p.group);
         const g = GRIP_FP[heldFile];
         p.group.position.set(g.p[0], g.p[1], g.p[2]);
         p.group.quaternion.setFromEuler(gripEuler.set(g.r[0], g.r[1], g.r[2]));
+        // A long piece is gripped along its length, not at its
+        // end: s slides the model inside the held group so the
+        // hand sits mid-shaft (the shovel needs this — gripped
+        // at the D-handle its blade ends up a speck in the haze).
+        if (inner) {
+          const s = g.s ?? [0, 0, 0];
+          inner.position.set(-p.spec.lc[0] * 16 + s[0], s[1], -p.spec.lc[1] * 16 + s[2]);
+        }
       } else {
         scene.add(p.group); // the tick snaps it to his hand
+        if (inner) inner.position.set(-p.spec.lc[0] * 16, 0, -p.spec.lc[1] * 16);
       }
+    };
+
+    // What a put-down lands ON at (x, z): the floor he stands
+    // on, or a counter-height furniture top close enough to
+    // set something on (Adam's playtest, 2026-11-14: the pot
+    // and extinguisher vanished INTO the counter because the
+    // drop always used floor height).
+    const dropSurfaceY = (x: number, z: number, ground: number): number => {
+      let best = ground;
+      for (const b of boxes) {
+        if (b.doorIdx !== undefined) continue;
+        if (x < b.minX - 0.04 || x > b.maxX + 0.04 || z < b.minZ - 0.04 || z > b.maxZ + 0.04) continue;
+        let top = b.maxY;
+        // The east run's box top is its faucet's height; its
+        // countertop is what a put-down rests on.
+        if (b.file === 'kitchen-run-east') top = b.minY + 0.95;
+        if (top > best && top <= ground + 1.15) best = top;
+      }
+      return best;
     };
 
     const dropPiece = (file: string, withAnim: boolean) => {
       const p = pieces.get(file);
       if (!p) return;
+      const inner = p.group.children[0];
+      if (inner) inner.position.set(-p.spec.lc[0] * 16, 0, -p.spec.lc[1] * 16);
       scene.add(p.group);
       const dx = input.pos.x - Math.sin(input.yaw) * 0.45;
       const dz = input.pos.z - Math.cos(input.yaw) * 0.45;
-      p.group.position.set(dx, input.ground, dz);
-      p.group.rotation.set(p.spec.lean ?? 0, input.yaw + Math.PI, 0);
+      const sy = dropSurfaceY(dx, dz, input.ground);
+      // The shovel leans only when there is something to lean
+      // on; mid-floor it lies flat, the way a dropped shovel
+      // does (Adam, 2026-11-14).
+      let rx = p.spec.lean ?? 0;
+      if (file === 'shovel') {
+        let nearSupport = false;
+        for (const b of boxes) {
+          if (b.doorIdx !== undefined) continue;
+          if (boxDist2D(b, dx, dz) < 0.38) { nearSupport = true; break; }
+        }
+        if (!nearSupport) {
+          for (const t of walls) {
+            if (t.maxY <= sy + 0.55 || t.minY >= sy + 1.6) continue;
+            if (distToTri2D(t, dx, dz) < 0.38) { nearSupport = true; break; }
+          }
+        }
+        rx = nearSupport ? (p.spec.lean ?? 0) : 0;
+      }
+      p.group.position.set(dx, sy, dz);
+      p.group.rotation.set(rx, input.yaw + Math.PI, 0);
       p.state = 'dropped';
-      setGroupBand(p.group, bandOf(input.ground));
+      setGroupBand(p.group, bandOf(sy));
       for (const tg of LOOK_TARGETS) {
         if (tg.file !== file) continue;
         const swap = Math.abs(Math.sin(p.spec.yaw)) > 0.5;
@@ -879,8 +930,8 @@ export default function ModelWalk() {
         tg.minX = dx - hw; tg.maxX = dx + hw;
         tg.minZ = dz - hd; tg.maxZ = dz + hd;
         const ys: [number, number] = LOOK_Y[file] ?? [0, p.spec.h > 0 ? p.spec.h : 0.3];
-        tg.minY = input.ground + ys[0];
-        tg.maxY = input.ground + ys[1];
+        tg.minY = sy + ys[0];
+        tg.maxY = sy + ys[1];
         tg.gone = false;
       }
       if (heldFile === file) heldFile = null;
@@ -1121,10 +1172,19 @@ export default function ModelWalk() {
           if (dist > 0.5) {
             fadeRay.set(fadeOrigin, fadeVec.normalize());
             fadeRay.near = 0.25;
-            fadeRay.far = dist - 0.12;
+            fadeRay.far = dist;
             const visible = houseMeshes.filter((m) => m.visible);
             for (const hit of fadeRay.intersectObjects(visible, false)) {
               want.add(hit.object as THREE.Mesh);
+            }
+            // A ceiling slab the camera has risen INTO never
+            // crosses the ray's range, but it fills the screen
+            // all the same — Adam's rule (2026-11-14): ceilings
+            // do not obstruct the third-person camera. Any house
+            // piece whose box holds the camera ghosts too.
+            for (const m of visible) {
+              const bb = m.userData.bbox as THREE.Box3 | undefined;
+              if (bb && bb.containsPoint(camera.position)) want.add(m);
             }
           }
         }
@@ -1176,6 +1236,9 @@ export default function ModelWalk() {
           if (b.doorIdx === undefined) continue;
           const leaf = leaves[b.doorIdx];
           if (!leaf || leaf.open01 > 0.5) continue;
+          // Same floor gate as the leaf interactions: a tag must
+          // never name a door on another floor through the shaft.
+          if (Math.abs(leaf.spec.floorY - input.ground) >= 1.0) continue;
           const h = rayBoxT(o.x, o.y, o.z, dir.x, dir.y, dir.z, b);
           if (h < bestT) {
             bestT = h;
@@ -1295,6 +1358,7 @@ export default function ModelWalk() {
             const mesh = obj as THREE.Mesh;
             if (!mesh.isMesh || locators.has(obj)) return;
             tmpBox.setFromObject(mesh);
+            mesh.userData.bbox = tmpBox.clone();
             banded.push({ obj, band: bandOf((tmpBox.min.y + tmpBox.max.y) / 2) });
             // Per-piece material clones for the TP wall fade.
             const mat = mesh.material as THREE.Material | THREE.Material[];
@@ -1339,7 +1403,7 @@ export default function ModelWalk() {
               }
               if (spec.boxes) {
                 for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
-                  boxes.push({ minX, maxX, minZ, maxZ, minY: fy, maxY: fy + spec.h });
+                  boxes.push({ minX, maxX, minZ, maxZ, minY: fy, maxY: fy + spec.h, file: spec.file });
                 }
               } else if (spec.box) {
                 const swap = Math.abs(Math.sin(spec.yaw)) > 0.5;
@@ -1348,7 +1412,7 @@ export default function ModelWalk() {
                 boxes.push({
                   minX: spec.cx - hw, maxX: spec.cx + hw,
                   minZ: spec.cz - hd, maxZ: spec.cz + hd,
-                  minY: fy, maxY: fy + spec.h,
+                  minY: fy, maxY: fy + spec.h, file: spec.file,
                 });
               }
             } catch {
