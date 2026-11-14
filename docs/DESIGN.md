@@ -136,6 +136,18 @@ pinned as the layout planning settles.
 
 - Walk, look (first person); one item per hand
 - Pick up / put down / carry
+- **E = INTERACT (Adam, 2026-11-13; v1 BUILT same day):** E is
+  contextual — it picks up the hand item he is looking at
+  (skillet, pot, claw hammer, fire extinguisher, baseball bat,
+  plunger, shovel), swaps it for what he is holding, still
+  locks/unlocks a door when he is in lock range of one, and
+  otherwise puts the held thing down at his feet. One item in
+  hand; the held thing shows as a viewmodel in first person
+  and rides his right hand in third. Grip poses are first-pass
+  and get tuned by eye. The phone is NOT a pickup yet — it
+  gets its own mechanic. Drawers and cabinets opening and
+  being searched is on the ToDo list (the junk drawer and its
+  claw hammer are the natural first case).
 - Swing what you're holding (the bonk obeys the Frying Pan Test)
 - Lock and unlock doors (inside privacy locks); barricade
 - Call 911 on the phone; the dispatcher conversation is gameplay
