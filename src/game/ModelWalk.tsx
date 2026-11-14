@@ -979,6 +979,190 @@ export default function ModelWalk() {
       }
     };
 
+    // Door casings, code-generated from the measured openings
+    // (Adam, 2026-11-14: trim is DEV's, generated from the wall
+    // data). Interior casing is 3 in wide (Adam measured the
+    // door beside him); the front and back doors get more
+    // substantial entry trim. Face planes are the DISCOVERED
+    // wall faces from the clearance probe, not assumed centres.
+    // The tightest spot in the house — the pier between the two
+    // upstairs bedroom doors — is 0.20 m wide; two 3 in casings
+    // fit it with ~0.05 to spare. Everywhere else has >= 1.0 m.
+    const buildCasings = () => {
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xe9e4d8, roughness: 0.85 });
+      type Opening = { axis: 'x' | 'z'; faces: number[]; centre: number; a: number; b: number; fy: number; entry?: boolean };
+      const OPENINGS: Opening[] = [
+        { axis: 'x', faces: [-1.08, -0.97], centre: -1.025, a: -1.45, b: -0.55, fy: 2.6 },
+        { axis: 'x', faces: [-1.08, -0.97], centre: -1.025, a: -0.35, b: 0.60, fy: 2.6 },
+        { axis: 'z', faces: [-1.70, -1.60], centre: -1.65, a: 0.05, b: 0.95, fy: 2.6 },
+        { axis: 'z', faces: [0.70, 0.80], centre: 0.75, a: 0.05, b: 0.90, fy: 2.6 },
+        { axis: 'z', faces: [0.50, 0.60], centre: 0.55, a: -5.0, b: -3.0, fy: 0.1 },
+        { axis: 'x', faces: [0.00, 0.10], centre: 0.05, a: -1.5, b: -0.5, fy: 0.1 },
+        { axis: 'x', faces: [-1.10, -1.00], centre: -1.05, a: 2.5, b: 3.5, fy: -2.4 },
+        { axis: 'z', faces: [-4.40], centre: -4.45, a: 3.10, b: 3.90, fy: 0.1, entry: true },
+        // The front door: a 0.90 m doorway found in the north
+        // wall (x 3.05..3.95) entering the East Room — the
+        // doorway Adam calls wonky; casing the inside face.
+        { axis: 'z', faces: [4.40], centre: 4.45, a: 3.05, b: 3.95, fy: 0.1, entry: true },
+      ];
+      const H = 2.3; // opening height, legs run floor to lintel line
+      for (const o of OPENINGS) {
+        const w = o.entry ? 0.115 : 0.076; // entry trim is more substantial
+        const t = o.entry ? 0.024 : 0.018;
+        const band = bandOf(o.fy + 0.2);
+        for (const face of o.faces) {
+          const dir = face > o.centre ? 1 : -1;
+          const off = face + dir * (t / 2 + 0.001);
+          const pieces: { size: [number, number, number]; at: [number, number, number] }[] = [];
+          if (o.axis === 'x') {
+            pieces.push(
+              { size: [t, H, w], at: [off, o.fy + H / 2, o.a - w / 2] },
+              { size: [t, H, w], at: [off, o.fy + H / 2, o.b + w / 2] },
+              { size: [t, w, o.b - o.a + 2 * w], at: [off, o.fy + H + w / 2, (o.a + o.b) / 2] },
+            );
+          } else {
+            pieces.push(
+              { size: [w, H, t], at: [o.a - w / 2, o.fy + H / 2, off] },
+              { size: [w, H, t], at: [o.b + w / 2, o.fy + H / 2, off] },
+              { size: [o.b - o.a + 2 * w, w, t], at: [(o.a + o.b) / 2, o.fy + H + w / 2, off] },
+            );
+          }
+          for (const p of pieces) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(...p.size), trimMat);
+            mesh.position.set(...p.at);
+            scene.add(mesh);
+            banded.push({ obj: mesh, band });
+          }
+        }
+      }
+    };
+
+    // Baseboards, also code-generated from the wall data
+    // (Adam, 2026-11-14): 5 in tall (his measurement), derived
+    // at load from the extracted wall/floor triangles so every
+    // future model export re-trims itself. A wall tri earns a
+    // baseboard segment when it stands on a floor top AND a
+    // real room floor (not a stair tread — treads fail the
+    // area test) lies beside its face; segments merge along
+    // each face and are cut at every doorway opening.
+    const buildBaseboards = () => {
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xe9e4d8, roughness: 0.85 });
+      const FLOOR_TOPS = [-2.4, 0.1, 2.6];
+      const H = 0.127; // 5 in
+      const T = 0.014;
+      // doorway cuts: (axis, face, from, to, fy) from the same
+      // measured openings as the casings
+      const CUTS: { axis: 'x' | 'z'; face: number; a: number; b: number; fy: number }[] = [
+        { axis: 'x', face: -1.08, a: -1.45, b: -0.55, fy: 2.6 }, { axis: 'x', face: -0.97, a: -1.45, b: -0.55, fy: 2.6 },
+        { axis: 'x', face: -1.08, a: -0.35, b: 0.60, fy: 2.6 }, { axis: 'x', face: -0.97, a: -0.35, b: 0.60, fy: 2.6 },
+        { axis: 'z', face: -1.70, a: 0.05, b: 0.95, fy: 2.6 }, { axis: 'z', face: -1.60, a: 0.05, b: 0.95, fy: 2.6 },
+        { axis: 'z', face: 0.70, a: 0.05, b: 0.90, fy: 2.6 }, { axis: 'z', face: 0.80, a: 0.05, b: 0.90, fy: 2.6 },
+        { axis: 'z', face: 0.50, a: -5.0, b: -3.0, fy: 0.1 }, { axis: 'z', face: 0.60, a: -5.0, b: -3.0, fy: 0.1 },
+        { axis: 'x', face: 0.00, a: -1.5, b: -0.5, fy: 0.1 }, { axis: 'x', face: 0.10, a: -1.5, b: -0.5, fy: 0.1 },
+        { axis: 'x', face: -1.10, a: 2.5, b: 3.5, fy: -2.4 }, { axis: 'x', face: -1.00, a: 2.5, b: 3.5, fy: -2.4 },
+        { axis: 'z', face: -4.40, a: 3.10, b: 3.90, fy: 0.1 },
+        { axis: 'z', face: 4.40, a: 3.05, b: 3.95, fy: 0.1 },
+      ];
+      type Seg = { axis: 'x' | 'z'; face: number; dir: number; from: number; to: number; fy: number };
+      const raw: Seg[] = [];
+      for (const t of walls) {
+        const xs = [t.ax, t.bx, t.cx];
+        const zs = [t.az, t.bz, t.cz];
+        const xFlat = Math.max(...xs) - Math.min(...xs) < 0.01;
+        const zFlat = Math.max(...zs) - Math.min(...zs) < 0.01;
+        if (!xFlat && !zFlat) continue;
+        const fy = FLOOR_TOPS.find((f) => t.minY >= f - 0.03 && t.minY <= f + 0.07);
+        if (fy === undefined) continue;
+        const axis: 'x' | 'z' = xFlat ? 'x' : 'z';
+        const face = xFlat ? xs[0] : zs[0];
+        const from = xFlat ? Math.min(...zs) : Math.min(...xs);
+        const to = xFlat ? Math.max(...zs) : Math.max(...xs);
+        if (to - from < 0.05) continue;
+        // supporting room floor beside the face? The slab tops
+        // are house-sized triangles, so judge by which side(s)
+        // of the face the floor's extent reaches — a floor
+        // spanning the face means rooms on both sides (emit
+        // both; the in-wall twin hides inside the wall box).
+        const dirs: number[] = [];
+        for (const fl of floors) {
+          if (Math.abs(fl.minY - fy) > 0.04 || Math.abs(fl.maxY - fy) > 0.04) continue;
+          const area = (fl.maxX - fl.minX) * (fl.maxZ - fl.minZ);
+          if (area < 0.4) continue; // a stair tread, not a room floor
+          const fFrom = axis === 'x' ? fl.minZ : fl.minX;
+          const fTo = axis === 'x' ? fl.maxZ : fl.maxX;
+          if (fTo < from - 0.02 || fFrom > to + 0.02) continue;
+          const fMin = axis === 'x' ? fl.minX : fl.minZ;
+          const fMax = axis === 'x' ? fl.maxX : fl.maxZ;
+          const dMin = fMin - face;
+          const dMax = fMax - face;
+          if (dMin < -0.02 && dMax > 0.02) { dirs.push(-1, 1); break; }
+          if (dMax > 0.02 && dMin >= -0.36) { dirs.push(1); break; }
+          if (dMin < -0.02 && dMax <= 0.36) { dirs.push(-1); break; }
+        }
+        for (const dir of dirs) raw.push({ axis, face, dir, from, to, fy });
+      }
+      // merge collinear segments
+      const key = (s: Seg) => `${s.axis}|${s.face.toFixed(2)}|${s.dir}|${s.fy}`;
+      const byKey = new Map<string, Seg[]>();
+      for (const s of raw) {
+        const k = key(s);
+        if (!byKey.has(k)) byKey.set(k, []);
+        byKey.get(k)!.push(s);
+      }
+      const merged: Seg[] = [];
+      for (const list of byKey.values()) {
+        list.sort((p, q) => p.from - q.from);
+        let cur: Seg | null = null;
+        for (const s of list) {
+          if (cur && s.from <= cur.to + 0.04) {
+            cur.to = Math.max(cur.to, s.to);
+          } else {
+            if (cur) merged.push(cur);
+            cur = { ...s };
+          }
+        }
+        if (cur) merged.push(cur);
+      }
+      // cut doorways, emit boxes
+      let count = 0;
+      for (const s of merged) {
+        let spans: [number, number][] = [[s.from, s.to]];
+        for (const c of CUTS) {
+          // 0.13 tolerance: a cut clears the opening through the
+          // whole wall thickness, incl. any in-wall twin segments
+          if (c.axis !== s.axis || c.fy !== s.fy || Math.abs(c.face - s.face) > 0.13) continue;
+          const next: [number, number][] = [];
+          for (const [p, q] of spans) {
+            if (c.b <= p || c.a >= q) { next.push([p, q]); continue; }
+            if (c.a > p) next.push([p, c.a]);
+            if (c.b < q) next.push([c.b, q]);
+          }
+          spans = next;
+        }
+        for (const [p, q] of spans) {
+          if (q - p < 0.05) continue;
+          const len = q - p;
+          const mid = (p + q) / 2;
+          const off = s.face + s.dir * (T / 2 + 0.001);
+          const mesh = new THREE.Mesh(
+            s.axis === 'x'
+              ? new THREE.BoxGeometry(T, H, len)
+              : new THREE.BoxGeometry(len, H, T),
+            trimMat,
+          );
+          mesh.position.set(
+            s.axis === 'x' ? off : mid,
+            s.fy + H / 2,
+            s.axis === 'x' ? mid : off,
+          );
+          scene.add(mesh);
+          banded.push({ obj: mesh, band: bandOf(s.fy + 0.2) });
+          count++;
+        }
+      }
+      console.log(`baseboards: ${count} runs from ${raw.length} raw segments`);
+    };
+
     let raf = 0;
     let last = performance.now();
     const prevPos = { x: input.pos.x, z: input.pos.z };
@@ -1593,6 +1777,8 @@ export default function ModelWalk() {
           });
         }
         buildLeaves();
+        buildCasings();
+        buildBaseboards();
         // Furniture: the pieces' own axes are already game-shaped
         // (x across, y up, z toward the front), so each one is just
         // scaled x16, centred on its placement, and yawed. A piece
