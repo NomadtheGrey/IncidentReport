@@ -642,3 +642,22 @@ still fits two 3 in casings with ~0.05 to spare.
   basement room (corner joints meet; runs stop at doors and
   butt the casings). Stair stringers get no raked board in
   v1 — the flights' own walls carry none.
+
+## The junk drawer — first searchable (2026-11-14, Models + DEV)
+
+Models split the junk drawer out of kitchen-run-south in the
+run's own local frame (front + open-top box, vertex-identical
+ajar front; the run re-issued with a dark cavity, everything
+else byte-stable). DEV wired the SEARCHABLES registry Adam
+asked for (the other drawers/cabinets join it later as piece
+splits + placements): the drawer starts CLOSED (DEV pushes it
+back the 0.035 ajar amount), E on its front slides it open
+0.34 over ~0.45 s, E on the pull band closes it. The claw
+hammer is parented to the drawer at load so it rides the
+slide; its look target stays sealed until the drawer is open
+(open01 > 0.7), and the open front's target shrinks to the
+pull band so the hammer can win the centre ray. Drive-proven
+end to end: closed tag + prompt, slide, unseal, pickup, held,
+close. One read to know about: aiming into the open box (not
+at the hammer or the front) tags 'Kitchen Counter' — the
+cavity is the counter's volume; Adam's playtest can judge.

@@ -233,6 +233,10 @@ const FURNITURE: FurnitureSpec[] = [
   // The south run's west-end module is the junk drawer.
   { file: 'kitchen-run-south', lc: [0.13125, 0.0203], w: 4.24, d: 0.65, h: 0.905, cx: 3.25, cz: -4.075, yaw: 0, box: true, y: 0.1,
     boxes: [[1.11, 3.0, -4.42, -3.73], [4.76, 5.39, -4.42, -3.73]] },
+  // The junk drawer, split out of the run by Models (2026-11-14)
+  // in the run's own local frame — same transform as the run, so
+  // it slides true. A SEARCHABLE (see SEARCHABLES below).
+  { file: 'junk-drawer', lc: [0.13125, 0.0203], w: 0.54, d: 0.53, h: 0.21, cx: 3.25, cz: -4.075, yaw: 0, box: false, y: 0.1 },
   { file: 'kitchen-wall-south', lc: [0.10315, 0.01195], w: 3.32, d: 0.38, h: 0, cx: 2.79, cz: -4.21, yaw: 0, box: false, y: 0.1 },
   { file: 'kitchen-run-east', lc: [0.09005, 0.0194], w: 2.92, d: 0.62, h: 1.16, cx: 5.59, cz: -3.06, yaw: -Math.PI / 2, box: true, y: 0.1 },
   { file: 'kitchen-wall-east', lc: [0.1547, 0.01195], w: 0.85, d: 0.38, h: 0, cx: 5.71, cz: -2.03, yaw: -Math.PI / 2, box: false, y: 0.1 },
@@ -456,6 +460,7 @@ const LOOK_NAMES: Record<string, string> = {
   'clothes-pile-c': 'Clothes Pile', 'laundry-basket': 'Laundry Basket',
   'picture-frame-1': 'Picture Frame', 'picture-frame-2': 'Picture Frame', 'picture-frame-3': 'Picture Frame',
   'poster-bedroom-1': 'Poster', 'poster-bedroom-2': 'Poster', 'curio-contents': 'The Good China',
+  'junk-drawer': 'Junk Drawer',
 };
 // Vertical spans for pieces whose spec height is 0 or whose bulk
 // hangs/floats off the placement height: [below, above] the spec y.
@@ -469,6 +474,7 @@ const LOOK_Y: Record<string, [number, number]> = {
   'hanging-plant': [-0.72, 0.02], 'coat-hooks': [0.8, 1.7], 'curio-contents': [0.1, 1.7],
   'picture-frame-1': [-0.21, 0.21], 'picture-frame-2': [-0.16, 0.16], 'picture-frame-3': [-0.12, 0.12],
   'poster-bedroom-1': [-0.43, 0.5], 'poster-bedroom-2': [-0.43, 0.5],
+  'junk-drawer': [0.63, 0.84],
 };
 const DOOR_NAMES: Record<string, string> = {
   clarissa: 'Bedroom 1 Door', breanna: 'Bedroom 2 Door', bathroom: 'Bathroom Door',
@@ -482,6 +488,9 @@ interface LookTarget {
   file?: string;
   fx?: string; // switchable-fixture id (batch 2 night lighting)
   gone?: boolean; // held in hand — not a world target right now
+  search?: number; // index into SEARCHABLES — a container front
+  sealed?: boolean; // inside a closed searchable — not targetable
+  base?: { minX: number; maxX: number; minZ: number; maxZ: number; minY: number; maxY: number };
 }
 
 // Night-lighting fixtures (batch 2): a switchable light source
@@ -519,6 +528,32 @@ const PICKUPABLE = new Set([
   'skillet', 'pot', 'claw-hammer', 'fire-extinguisher',
   'baseball-bat', 'plunger', 'shovel',
 ]);
+
+// Searchables (Adam, 2026-11-14): containers that open and can
+// be searched — the junk drawer is the first case; the other
+// drawers and cabinets join this same registry later. A
+// searchable's piece slides along its local +z from a closed
+// offset (the junk drawer ships modelled ajar, so closed is a
+// push BACK by the ajar amount) by `slide` metres. Contents
+// ride the piece (they are parented to it at load) and their
+// look targets stay sealed until it is open.
+interface SearchableDef {
+  id: string;
+  file: string;
+  yaw: number;
+  closedOffset: number;
+  slide: number;
+  contents: string[];
+  openLabel: string;
+  closeLabel: string;
+}
+const SEARCHABLES: SearchableDef[] = [
+  {
+    id: 'junk-drawer', file: 'junk-drawer', yaw: 0,
+    closedOffset: -0.035, slide: 0.34, contents: ['claw-hammer'],
+    openLabel: 'Open the junk drawer', closeLabel: 'Close the drawer',
+  },
+];
 
 // First-pass grips, to be tuned by eye: FP = camera-local
 // viewmodel pose; TP = extra rotation on top of his facing
@@ -566,6 +601,18 @@ for (const spec of FURNITURE) {
     minX: spec.cx - hw, maxX: spec.cx + hw, minZ: spec.cz - hd, maxZ: spec.cz + hd,
     minY: fy + ys[0], maxY: fy + ys[1],
   });
+}
+// The junk drawer's auto target lands on the run's centre (the
+// piece shares the run's transform) — replace it with the
+// drawer FRONT's real box, in its closed position (game coords
+// from Models' measured panel: x 1.18..1.72, y 0.73..0.94,
+// front face z -3.77 ajar, -3.805 closed). The tick slides it.
+for (const tg of LOOK_TARGETS) {
+  if (tg.file !== 'junk-drawer') continue;
+  tg.minX = 1.16; tg.maxX = 1.74;
+  tg.minZ = -3.845; tg.maxZ = -3.765;
+  tg.minY = 0.73; tg.maxY = 0.94;
+  tg.search = 0;
 }
 
 // Pristine copy of the targets' home boxes, so leaving the
@@ -1187,7 +1234,21 @@ export default function ModelWalk() {
     type Piece = { spec: (typeof FURNITURE)[number]; group: THREE.Group; state: 'placed' | 'held' | 'dropped' };
     const pieces = new Map<string, Piece>();
     let heldFile: string | null = null;
-    const lookRef = { file: null as string | null, fixture: null as Fixture | null };
+    const lookRef = { file: null as string | null, fixture: null as Fixture | null, search: null as SearchState | null };
+
+    // Searchables runtime state (the registry pattern Adam
+    // approved for all drawers/cabinets, 2026-11-14).
+    interface SearchState {
+      def: SearchableDef;
+      group: THREE.Group | null;
+      base: THREE.Vector3 | null;
+      open01: number;
+      target: 0 | 1;
+      offset: number;
+    }
+    const searchState: SearchState[] = SEARCHABLES.map((def) => ({
+      def, group: null, base: null, open01: 0, target: 0 as 0 | 1, offset: def.closedOffset,
+    }));
     let handBone: THREE.Object3D | null = null;
     const snapPos = new THREE.Vector3();
     const snapQuat = new THREE.Quaternion();
@@ -1338,6 +1399,12 @@ export default function ModelWalk() {
         toggleFixture(lookRef.fixture);
         return;
       }
+      if (lookRef.search) {
+        const st = lookRef.search;
+        st.target = st.target === 1 ? 0 : 1;
+        character.playOnce('Use / press');
+        return;
+      }
       if (toggleLock()) return;
       if (heldFile) dropPiece(heldFile, true);
     };
@@ -1346,6 +1413,43 @@ export default function ModelWalk() {
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+
+      // Searchables: slide toward the target state, carry the
+      // front's look target along, and ride + seal the look
+      // targets of anything still sitting inside.
+      for (let si = 0; si < searchState.length; si++) {
+        const st = searchState[si];
+        if (!st.group || !st.base) continue;
+        const diff = st.target - st.open01;
+        if (diff !== 0) {
+          st.open01 += Math.sign(diff) * Math.min(Math.abs(diff), dt / 0.45);
+        }
+        st.offset = st.def.closedOffset + st.open01 * st.def.slide;
+        const sx = Math.sin(st.def.yaw) * st.offset;
+        const sz = Math.cos(st.def.yaw) * st.offset;
+        st.group.position.set(st.base.x + sx, st.base.y, st.base.z + sz);
+        for (const tg of LOOK_TARGETS) {
+          if (tg.search === si) {
+            if (!tg.base) tg.base = { minX: tg.minX, maxX: tg.maxX, minZ: tg.minZ, maxZ: tg.maxZ, minY: tg.minY, maxY: tg.maxY };
+            tg.minX = tg.base.minX + sx; tg.maxX = tg.base.maxX + sx;
+            tg.minZ = tg.base.minZ + sz; tg.maxZ = tg.base.maxZ + sz;
+            // Open: shrink to the pull band, so the contents
+            // inside can win the centre ray over the front.
+            tg.minY = st.open01 > 0.7 ? tg.base.minY + 0.13 : tg.base.minY;
+          }
+        }
+        for (const file of st.def.contents) {
+          const p = pieces.get(file);
+          if (!p || p.state !== 'placed') continue;
+          for (const tg of LOOK_TARGETS) {
+            if (tg.file !== file) continue;
+            if (!tg.base) tg.base = { minX: tg.minX, maxX: tg.maxX, minZ: tg.minZ, maxZ: tg.maxZ, minY: tg.minY, maxY: tg.maxY };
+            tg.minX = tg.base.minX + sx; tg.maxX = tg.base.maxX + sx;
+            tg.minZ = tg.base.minZ + sz; tg.maxZ = tg.base.maxZ + sz;
+            tg.sealed = st.open01 < 0.7;
+          }
+        }
+      }
 
       let mx = 0;
       let mz = 0;
@@ -1601,9 +1705,13 @@ export default function ModelWalk() {
         let foundTg: LookTarget | null = null;
         let bestT = limit;
         for (const tg of LOOK_TARGETS) {
-          if (tg.gone) continue;
+          if (tg.gone || tg.sealed) continue;
           const h = rayBoxT(o.x, o.y, o.z, dir.x, dir.y, dir.z, tg);
-          if (h < bestT) { bestT = h; found = tg.name; foundTg = tg; }
+          // A searchable's front is the specific small thing in
+          // front of a big generic surface (the counter's target
+          // box swallows the drawer's bay) — bias it nearer.
+          const hh = tg.search !== undefined ? h - 0.12 : h;
+          if (hh < bestT) { bestT = hh; found = tg.name; foundTg = tg; }
         }
         for (const b of boxes) {
           if (b.doorIdx === undefined) continue;
@@ -1628,6 +1736,7 @@ export default function ModelWalk() {
         // chest), not merely of the camera.
         lookRef.file = null;
         lookRef.fixture = null;
+        lookRef.search = null;
         if (foundTg?.file && PICKUPABLE.has(foundTg.file)) {
           const cx = (foundTg.minX + foundTg.maxX) / 2;
           const cy = (foundTg.minY + foundTg.maxY) / 2;
@@ -1645,6 +1754,13 @@ export default function ModelWalk() {
             if (d <= 2.6) lookRef.fixture = fxObj;
           }
         }
+        if (!lookRef.file && !lookRef.fixture && foundTg?.search !== undefined) {
+          const cx = (foundTg.minX + foundTg.maxX) / 2;
+          const cy = (foundTg.minY + foundTg.maxY) / 2;
+          const cz = (foundTg.minZ + foundTg.maxZ) / 2;
+          const d = Math.hypot(cx - input.pos.x, cy - (input.ground + 1.2), cz - input.pos.z);
+          if (d <= 2.6) lookRef.search = searchState[foundTg.search];
+        }
         let iNote: string | null = null;
         if (lookRef.file && lookRef.file !== heldFile) {
           iNote = `${heldFile ? 'Swap for' : 'Pick up'} ${LOOK_NAMES[lookRef.file]}`;
@@ -1653,6 +1769,9 @@ export default function ModelWalk() {
           iNote = fxObj.kind === 'fan'
             ? 'Light cord · F — Fan cord'
             : fxObj.kind === 'plate' ? 'Lights' : 'Light';
+        } else if (lookRef.search) {
+          const st = lookRef.search;
+          iNote = st.target === 1 || st.open01 > 0.5 ? st.def.closeLabel : st.def.openLabel;
         } else if (heldFile && !note) {
           iNote = `Put down ${LOOK_NAMES[heldFile]}`;
         }
@@ -1869,6 +1988,11 @@ export default function ModelWalk() {
               if (PICKUPABLE.has(spec.file)) {
                 pieces.set(spec.file, { spec, group, state: 'placed' });
               }
+              const sIdx = SEARCHABLES.findIndex((s) => s.file === spec.file);
+              if (sIdx >= 0) {
+                searchState[sIdx].group = group;
+                searchState[sIdx].base = group.position.clone();
+              }
               if (spec.boxes) {
                 for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
                   boxes.push({ minX, maxX, minZ, maxZ, minY: fy, maxY: fy + spec.h, file: spec.file });
@@ -1888,6 +2012,16 @@ export default function ModelWalk() {
             }
           }),
         );
+        // Searchables: parent each container's contents to its
+        // group so they ride the slide (attach keeps their world
+        // pose; pickup/drop re-parent them back out as usual).
+        for (const st of searchState) {
+          if (!st.group) continue;
+          for (const file of st.def.contents) {
+            const p = pieces.get(file);
+            if (p) st.group.attach(p.group);
+          }
+        }
         // Code-built fixtures (batch 2): the hall dome, the
         // bathroom light bar and the basement bulbs have no
         // Models piece (yet) — simple props whose glow material
