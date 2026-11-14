@@ -57,6 +57,11 @@ interface ModelDoor {
   width: number;
   wallAxis: 'x' | 'z';
   insideSign: number;
+  // Optional swing override: by default a leaf swings toward
+  // its inside (openAngle follows insideSign). The basement-
+  // stair door locks from the room side but must swing INTO
+  // the room — never out over the flight — so it decouples.
+  swing?: number;
 }
 
 const MODEL_DOORS: ModelDoor[] = [
@@ -78,6 +83,15 @@ const MODEL_DOORS: ModelDoor[] = [
   // Main floor: NO leaf in the hall<->stairwell opening — Adam's pin
   // (2026-11-12): that doorway stays open. The leaf that used to hang
   // here could also bar the only route to the basement stairs.
+  // The basement-stair door (Adam's pin, 2026-11-12: a door at the
+  // TOP of the basement flight, accessed from the kitchen). The
+  // band's west end is one wide opening (x 2.0, z -1.6..0.7); the
+  // leaf closes only the SOUTH lane (the down flight), hinged at
+  // the shaft-wall jamb (z -1.6). It locks from the room side
+  // (insideSign -1) but swings INTO the room (swing +1) — a real
+  // basement door never swings out over the flight. The north
+  // lane (up flight) stays open, per the no-doors-at-stairs pin.
+  { id: 'basement-stairs', cx: 2.0, cz: -1.05, floorY: 0.1, width: 1.1, wallAxis: 'x', insideSign: -1, swing: 1 },
   // Basement (floor -2.4). The walled-off room's door, 1.0 wide.
   { id: 'basement-room', cx: -1.1, cz: 3.0, floorY: -2.4, width: 1.0, wallAxis: 'x', insideSign: -1 },
 ];
@@ -409,7 +423,13 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: -1.55, yaw: -Math.PI / 2, box: false, y: 3.8 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 0.16, cz: -0.55, yaw: Math.PI / 2, box: false, y: 1.3 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 0.2, cz: -1.59, yaw: 0, box: false, y: 3.8 },
-  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.94, cz: -1.05, yaw: -Math.PI / 2, box: false, y: 1.3, grp: 'basement' },
+  // The basement-stair plate used to float at (1.94, -1.05) —
+  // the band's west end has no wall there (the leaf landing
+  // framed it mid-doorway). It now sits on the shaft wall's
+  // kitchen face beside the kitchen plate, next to the
+  // basement door it serves; still wired to the basement
+  // circuit like a 3-way.
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 2.35, cz: -1.76, yaw: Math.PI, box: false, y: 1.3, grp: 'basement' },
   // Outlets (0.3 m up; kitchen + bathroom at counter height).
   { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 3.6, cz: 4.39, yaw: Math.PI, box: false, y: 2.9 },
   { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 5.89, cz: 1.2, yaw: -Math.PI / 2, box: false, y: 2.9 },
@@ -479,7 +499,7 @@ const LOOK_Y: Record<string, [number, number]> = {
 const DOOR_NAMES: Record<string, string> = {
   clarissa: 'Bedroom 1 Door', breanna: 'Bedroom 2 Door', bathroom: 'Bathroom Door',
   darleen: 'Master Bedroom Door',
-  'basement-room': 'Basement Room Door',
+  'basement-room': 'Basement Room Door', 'basement-stairs': 'Basement Door',
 };
 
 interface LookTarget {
@@ -998,12 +1018,12 @@ export default function ModelWalk() {
           pivot.position.set(spec.cx, spec.floorY, spec.cz - spec.width / 2);
           leafMesh = new THREE.Mesh(new THREE.BoxGeometry(0.05, DOOR_H, spec.width), doorMat);
           leafMesh.position.set(0, DOOR_H / 2, spec.width / 2);
-          openAngle = spec.insideSign * 1.75;
+          openAngle = (spec.swing ?? spec.insideSign) * 1.75;
         } else {
           pivot.position.set(spec.cx - spec.width / 2, spec.floorY, spec.cz);
           leafMesh = new THREE.Mesh(new THREE.BoxGeometry(spec.width, DOOR_H, 0.05), doorMat);
           leafMesh.position.set(spec.width / 2, DOOR_H / 2, 0);
-          openAngle = -spec.insideSign * 1.75;
+          openAngle = -(spec.swing ?? spec.insideSign) * 1.75;
         }
         pivot.add(leafMesh);
         scene.add(pivot);
