@@ -1,11 +1,16 @@
 import { useState } from 'react';
+import Credits from './game/Credits';
 import ExplodedModel from './game/ExplodedModel';
 import ModelWalk from './game/ModelWalk';
 
-type View = 'title' | 'model' | 'exploded';
+type View = 'title' | 'model' | 'exploded' | 'credits';
 
 export default function App() {
   const [view, setView] = useState<View>('title');
+
+  if (view === 'credits') {
+    return <Credits onDone={() => setView('model')} />;
+  }
 
   if (view === 'model' || view === 'exploded') {
     return (
@@ -66,6 +71,18 @@ export default function App() {
         That is the problem. For him.
       </div>
       <div style={{ display: 'flex', gap: '0.8rem', marginTop: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button
+          onClick={() => setView('credits')}
+          style={{
+            padding: '0.7rem 1.5rem',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            minHeight: 48,
+          }}
+        >
+          Opening credits
+        </button>
         <button
           onClick={() => setView('model')}
           style={{

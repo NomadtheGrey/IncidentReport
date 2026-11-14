@@ -684,3 +684,22 @@ no wall at the band's west end, and the new leaf framed it
 mid-doorway. It now sits on the shaft wall's kitchen face at
 (2.35, -1.76) beside the kitchen plate, still wired to the
 basement circuit; toggled both basement bulbs on in a drive.
+
+## Opening credits (2026-11-14)
+Adam: "Maybe we can start on the stupidly long credits." The
+Bambi vs. Godzilla structure gets its front half: a new
+Credits view (src/game/Credits.tsx) behind an "Opening
+credits" button on the title screen; when the roll ends (or
+is skipped) it drops straight into the walkthrough. 26 cards,
+fade in/out, ~4 minutes at default dwell — the length is the
+joke, and every card is data (lines + dwell) so Adam's pin
+pass is one-line edits. Any click/tap/key skips to a gag card
+("You have skipped the credits. This will be noted in the
+report.") and then into the house; a dim corner hint reads
+"click or press any key to skip — coward". The copy is a
+DRAFT in Adam's voice (the skillet as itself, the shovel who
+declined to dig, lighting by whoever remembered the switch at
+the top of the stairs) — unreviewed by him, expect edits.
+The CLOSING roll and the Report card are NOT here: they hang
+off the incident loop (grade, epilogue interruptions) and
+ship with the Badguy.
