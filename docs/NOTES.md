@@ -611,3 +611,34 @@ these, not the other way round.
   if needed; none were. The warm light is now a strip under
   the front lip; DEV re-aimed the fixture light to match and
   shrank the look span to the new body. Toggle drive-verified.
+
+## Trim pass — casings + baseboards (2026-11-14, DEV, code-generated)
+
+Adam left the trim to DEV, generated from the wall data so it
+regenerates on every future export. Sizes are Adam's, measured
+off the door beside him: interior casing 3 in wide, baseboards
+5 in tall; the front and back doors get more substantial entry
+trim (4.5 in wide, thicker). Clearance probe first (Adam's
+worry): every doorway has >= 1.0 m of wall beside it except the
+pier between the two upstairs bedroom doors — 0.20 m, which
+still fits two 3 in casings with ~0.05 to spare.
+
+- Casings (buildCasings): nine measured openings — the five
+  leaf doors, the archway, the hall-stair opening, the back
+  door, and the front door. Face planes are the discovered
+  wall faces, not assumed centres. THE FRONT DOOR: probing the
+  exterior walls found a 0.90 m doorway in the north wall at
+  x 3.05..3.95, entering the East Room (open floor-to-lintel
+  with a threshold strip and a lintel piece — the doorway Adam
+  calls wonky). It had never been inventoried before; it is
+  cased on the inside face with entry trim.
+- Baseboards (buildBaseboards): derived at load from the
+  extracted wall/floor triangles. A wall tri earns a segment
+  when it stands on a floor top and a real room floor (area
+  test excludes stair treads) lies beside its face; segments
+  merge per face and are cut at every doorway through the
+  whole wall thickness. 26 runs house-wide. Verified by drive
+  screenshots in the living room, master bedroom, and
+  basement room (corner joints meet; runs stop at doors and
+  butt the casings). Stair stringers get no raked board in
+  v1 — the flights' own walls carry none.
