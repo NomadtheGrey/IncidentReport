@@ -145,9 +145,13 @@ pinned as the layout planning settles.
   hand; the held thing shows as a viewmodel in first person
   and rides his right hand in third. Grip poses are first-pass
   and get tuned by eye. The phone is NOT a pickup yet — it
-  gets its own mechanic. Drawers and cabinets opening and
-  being searched is on the ToDo list (the junk drawer and its
-  claw hammer are the natural first case).
+  gets its own mechanic. SEARCHABLES (built 2026-11-14, the
+  junk drawer first): a container the player looks at and
+  opens with E; it slides/draws open, and what sits inside
+  only becomes takeable once it is open. The junk drawer's
+  prize is the claw hammer. Adam (2026-11-14): the other
+  drawers and cabinets become searchable later, on the same
+  registry — piece splits and placements, not new code.
 - Swing what you're holding (the bonk obeys the Frying Pan Test)
 - Lock and unlock doors (inside privacy locks); barricade
 - Call 911 on the phone; the dispatcher conversation is gameplay
