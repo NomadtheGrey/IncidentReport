@@ -288,7 +288,7 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -2, yaw: 0, box: false, y: 0.0 },
   // Range hood over the range, back to the south wall (Models
   // Pack A, mounted space: underside at local 1.45).
-  { file: 'range-hood', lc: [0, 0], w: 0.8, d: 0.55, h: 0, cx: 4.37, cz: -4.42, yaw: 0, box: false, y: 0.1 },
+  { file: 'range-hood', lc: [0, 0], w: 0.82, d: 0.5, h: 0, cx: 4.37, cz: -4.42, yaw: 0, box: false, y: 0.1 },
   // Bedside lamps, one per bedroom (Adam, 2026-11-14): the
   // master lamp takes the far nightstand (the phone keeps its
   // own), the girls' lamps their nightstands. Tops at 3.21.
@@ -465,7 +465,7 @@ const LOOK_Y: Record<string, [number, number]> = {
   'kitchen-wall-south': [1.75, 2.45], 'kitchen-wall-east': [1.75, 2.45],
   'switch-plate': [-0.09, 0.09], 'outlet-plate': [-0.09, 0.09], thermostat: [-0.1, 0.1],
   shovel: [0, 1.35],
-  'range-hood': [1.4, 2.55], curtains: [0.9, 2.3],
+  'range-hood': [1.5, 1.83], curtains: [0.9, 2.3],
   'hanging-plant': [-0.72, 0.02], 'coat-hooks': [0.8, 1.7], 'curio-contents': [0.1, 1.7],
   'picture-frame-1': [-0.21, 0.21], 'picture-frame-2': [-0.16, 0.16], 'picture-frame-3': [-0.12, 0.12],
   'poster-bedroom-1': [-0.43, 0.5], 'poster-bedroom-2': [-0.43, 0.5],
@@ -1673,7 +1673,9 @@ export default function ModelWalk() {
                 } else if (spec.file === 'range-hood') {
                   const light = new THREE.PointLight(0xffe6b8, 0, 3.2, 1.8);
                   light.visible = false;
-                  light.position.set(0, 1.35, 0.3);
+                  // Household rebuild (2026-11-14): the light strip
+                  // sits under the front lip, mouth at local 1.54.
+                  light.position.set(0, 1.5, 0.35);
                   group.add(light);
                   registerFixture({ id, kind: 'hood', group: grp, lights: [light], level: 2.6, glowMats: [], on: false });
                 }
