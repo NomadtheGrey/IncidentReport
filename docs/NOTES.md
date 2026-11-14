@@ -521,3 +521,61 @@ these, not the other way round.
   and the fade ray reaches the full boom — a ceiling slab the
   camera rises into can no longer fill the screen (Adam's
   rule, 2026-11-14).
+
+- **Batch 2: fixtures, clutter, and the night (Adam's direction,
+  2026-11-14).** Models Pack A (fixtures) and Pack B (clutter)
+  integrated; the lighting system rebuilt around Adam's night
+  pin. (1) Fixtures: range hood over the stove; a ceiling fan
+  for the kitchen (six in the house now, all with light kits
+  and two pull cords); bedside lamps in all three bedrooms;
+  curtains on all four windows (Window1-4 measured: all
+  2.0 x 1.0 m, sill 1.1); the vanity rebuilt with a real
+  recessed basin, knobs and a drain; smoke detectors ROUND and
+  above doorways; the bathtub rotated 180 so its faucet meets
+  the east wall and slid against it. (2) Clutter per
+  docs/LIVED-IN.md: coffee table (books + TV remote on it)
+  before the 3-seat couch; two comfy chairs against the wall
+  in the little space right of the stairs as you come down
+  (placed inside the East Room on that wall — Adam's nudge
+  invited); the annoyingly big plant dead centre of the dining
+  table; hanging plants at three windows; the curio stocked
+  with the good china (its door glass ships opaque — the
+  loader makes it real glass, opacity 0.25, or the china
+  would never be seen); coats + shoes in the hall; dog bowls
+  just inside the back door; posters over the beds; picture
+  frames; clothes heaps; a laundry basket marking the
+  basement laundry corner (washer/dryer await Adam's word on
+  the spot). Placement lessons owned: the kitchen's whole
+  south wall is counter, so nothing wall-hung goes there; the
+  first trash-can and dog-bowl spots landed inside other
+  pieces' boxes and were moved. (3) Night lighting: the old
+  always-on wash is gone. Ambient is a faint cool level plus
+  streetlight spill at the four windows — navigable, not
+  safe. Every real light is a switchable fixture, OFF at
+  start: ceiling fans (E pulls the light cord — the dome
+  glows and a warm point light wakes; F pulls the fan cord —
+  the blades spin on a hub spinner), table/floor lamps (E),
+  the range hood (E), and code-built props where no Models
+  piece exists yet: a hall dome, a bathroom light bar over
+  the mirror, two basement bulbs. Wall plates work their
+  whole room circuit (any-off -> all-on, else all-off); new
+  plates added: kitchen, Bedroom 1, the hall pair at either
+  end of the stairs, and one at the top of the basement
+  flight wired to the basement circuit like a 3-way. Off
+  lights are invisible to the renderer (three.js skips
+  invisible lights), so a dark house costs four spill lights.
+  Fan-light interaction drive-verified end to end; lamps and
+  plates run the same path (the robot's aim at the small
+  targets is unreliable — Adam's walk is the check). (4) The
+  first-person body renders (Adam): the FP camera rides
+  0.16 m ahead of the eye point along the look vector, which
+  keeps the head behind the near plane — looking down shows
+  torso, arms and hands, and the bathroom mirror shows the
+  whole man. Known wart: at a very steep look-down the near
+  plane slices the neck into a dark band. (5) Ceilings: the
+  colour pass now paints slab undersides at the three slab
+  planes warm ceiling white (#E9E3D6, 132 tris) — they read
+  near-black before. Open, parked by Adam's word: the east
+  kitchen run is 2.92 m long in a 2.80 m span (wall face
+  -1.60 to -4.40) — Models trims 0.12 when the counter fix
+  comes up; the run currently pokes ~2 cm out the back.
