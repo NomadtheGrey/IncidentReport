@@ -661,3 +661,26 @@ end to end: closed tag + prompt, slide, unseal, pickup, held,
 close. One read to know about: aiming into the open box (not
 at the hammer or the front) tags 'Kitchen Counter' — the
 cavity is the counter's volume; Adam's playtest can judge.
+
+## Basement-stair door (2026-11-14)
+Adam's pin (2026-11-12): a door at the TOP of the basement
+flight, accessed from the kitchen. The band's west end is one
+wide opening (x 2.0, z -1.6..0.7, no wall); the leaf closes
+only the SOUTH lane (the down flight): spec basement-stairs,
+cx 2.0, cz -1.05, width 1.1, floorY 0.1, hinged at the
+shaft-wall jamb (z -1.6). ModelDoor gained a `swing` override:
+the leaf locks from the room side (insideSign -1) but swings
+INTO the room (swing +1) — a real basement door never swings
+out over the flight. The north lane (up flight) stays open
+per the no-doors-at-stairs pin. No casing on this opening in
+v1 (its jambs are wall ENDS, not faces — corner trim is its
+own problem). Drive-verified: proximity-opens from the room
+side, the full descent (south lane, landing, north lane)
+walks through it, E locks/unlocks from the room side, and a
+locked leaf blocks the stair-side approach and stays shut.
+Also fixed en route: the basement circuit's stair-top switch
+plate had floated at (1.94, -1.05) since batch 2 — there is
+no wall at the band's west end, and the new leaf framed it
+mid-doorway. It now sits on the shaft wall's kitchen face at
+(2.35, -1.76) beside the kitchen plate, still wired to the
+basement circuit; toggled both basement bulbs on in a drive.
