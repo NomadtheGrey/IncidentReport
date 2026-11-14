@@ -136,6 +136,9 @@ export default function ExplodedModel() {
         // Adam's furniture location markers are planning aids, not
         // house — skip them here too.
         if (o.name === 'Locators' || o.name.endsWith('Loc')) return;
+        // Window1-4 are reference blocks, not house (Adam,
+        // 2026-11-14) — the openings read as openings here.
+        if (/^Window[1-4]$/.test(o.name)) return;
         const mesh = o as THREE.Mesh;
         if (!mesh.isMesh) return;
         const geo = mesh.geometry as THREE.BufferGeometry;

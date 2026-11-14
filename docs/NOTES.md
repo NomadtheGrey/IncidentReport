@@ -579,3 +579,21 @@ these, not the other way round.
   kitchen run is 2.92 m long in a 2.80 m span (wall face
   -1.60 to -4.40) — Models trims 0.12 when the counter fix
   comes up; the run currently pokes ~2 cm out the back.
+
+- **Windows (Adam's call + Models build, 2026-11-14).** The
+  Window1-4 blocks in Adam's model are reference points, not
+  windows (Adam: "meant to be reference points for the windows
+  in that room"). Models built one window unit — cream frame
+  filling the 2.0 x 1.0 opening at the full wall depth, inset
+  sash with a centre mullion and rail (four lites), a steel
+  latch block, an interior sill board nosing 0.02 into the
+  room, and a real glass pane (window_glass ships alphaMode
+  BLEND at 0.35, faint blue-grey — no loader special-case
+  needed this time). DEV hides the four reference blocks at
+  load in both views (same treatment as the *Loc markers) and
+  places four units as furniture with colliders, so each
+  opening stays blocked; they sit behind the batch-2 curtains
+  and spill lights. Verified: world AABBs match the openings
+  exactly (y 1.07..2.10, flush at both wall faces), the glass
+  reads pale through the curtain gap at night, look tag
+  'Window', boot smoke clean.

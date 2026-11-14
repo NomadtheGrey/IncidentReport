@@ -302,6 +302,15 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: -5.84, cz: 2.5, yaw: Math.PI / 2, box: false, y: 0.1 },
   { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: -1.5, cz: 4.34, yaw: Math.PI, box: false, y: 0.1 },
   { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: 5.84, cz: 2.5, yaw: -Math.PI / 2, box: false, y: 0.1 },
+  // The window units (Models, 2026-11-14) sit IN Adam's Window1-4
+  // reference openings — 2.0 x 1.0, sill 1.1, wall depth 0.1. The
+  // spec centre is the opening's centre; the frame spans the wall
+  // and the sill board noses 0.02 into the room. Boxed so the
+  // opening stays blocked now that the reference blocks are hidden.
+  { file: 'window', lc: [0, 0.00375], w: 2.06, d: 0.12, h: 1.03, cx: -5.84, cz: -2, yaw: Math.PI / 2, box: true, y: 1.1 },
+  { file: 'window', lc: [0, 0.00375], w: 2.06, d: 0.12, h: 1.03, cx: -5.84, cz: 2.5, yaw: Math.PI / 2, box: true, y: 1.1 },
+  { file: 'window', lc: [0, 0.00375], w: 2.06, d: 0.12, h: 1.03, cx: -1.5, cz: 4.34, yaw: Math.PI, box: true, y: 1.1 },
+  { file: 'window', lc: [0, 0.00375], w: 2.06, d: 0.12, h: 1.03, cx: 5.84, cz: 2.5, yaw: -Math.PI / 2, box: true, y: 1.1 },
   // ---- The clutter pass (Models Pack B, docs/LIVED-IN.md):
   // Adam's law — any flat surface is an insult and gets filled.
   // Coffee table between the 3-seat couch and the TV, with the
@@ -438,7 +447,7 @@ const LOOK_NAMES: Record<string, string> = {
   range: 'Range', fridge: 'Fridge', furnace: 'Furnace', 'water-heater': 'Water Heater',
   'towel-rail': 'Towel Rail', thermostat: 'Thermostat',
   'switch-plate': 'Light Switch', 'outlet-plate': 'Outlet',
-  'range-hood': 'Range Hood', 'table-lamp': 'Lamp', curtains: 'Curtains',
+  'range-hood': 'Range Hood', 'table-lamp': 'Lamp', curtains: 'Curtains', window: 'Window',
   'coffee-table': 'Coffee Table', armchair: 'Armchair', 'table-plant': 'Potted Plant',
   'hanging-plant': 'Hanging Plant', 'fruit-bowl': 'Fruit Bowl', 'book-stack': 'Books',
   'tv-remote': 'TV Remote', 'mail-pile': 'Mail', mugs: 'Mugs', shoes: 'Shoes',
@@ -1549,6 +1558,16 @@ export default function ModelWalk() {
         const locators = new Set<THREE.Object3D>();
         gltf.scene.traverse((obj) => {
           if (obj.name === 'Locators' || obj.name.endsWith('Loc')) {
+            obj.visible = false;
+            obj.traverse((sub) => locators.add(sub));
+          }
+        });
+        // The Window1-4 blocks in Adam's model are reference points
+        // for the windows, not the windows themselves (Adam,
+        // 2026-11-14) — hide them the same way; Models' window
+        // unit (furniture specs below) fills each opening.
+        gltf.scene.traverse((obj) => {
+          if (/^Window[1-4]$/.test(obj.name)) {
             obj.visible = false;
             obj.traverse((sub) => locators.add(sub));
           }
