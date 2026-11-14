@@ -173,6 +173,7 @@ interface FurnitureSpec {
   boxes?: [number, number, number, number][];
   y?: number; // floor height the piece stands on (default FURN_Y)
   lean?: number; // radians of forward tilt after yaw (wall-leaning props)
+  grp?: string; // light-circuit override (switch plates mostly)
 }
 
 const FURN_Y = 2.6;
@@ -181,7 +182,10 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'vanity', lc: [0.028, 0.017], w: 0.93, d: 0.57, h: 1.06, cx: 0.62, cz: -4.115, yaw: 0, box: true },
   { file: 'mirror', lc: [0.0255, 0.001], w: 0.82, d: 0.03, h: 0, cx: 0.62, cz: -4.385, yaw: 0, box: false },
   { file: 'toilet', lc: [0.0155, 0.021], w: 0.53, d: 0.70, h: 0.83, cx: 1.62, cz: -4.05, yaw: 0, box: true },
-  { file: 'bathtub', lc: [0.053, 0.0235], w: 1.70, d: 0.75, h: 0.75, cx: 3.85, cz: -4.025, yaw: 0, box: true },
+  // The tub is turned 180 and slid east to the wall (Adam,
+  // 2026-11-14): its faucet riser (the piece's west end) now
+  // stands at the east wall, where the plumbing actually is.
+  { file: 'bathtub', lc: [0.053, 0.0235], w: 1.70, d: 0.75, h: 0.75, cx: 5.0, cz: -4.025, yaw: Math.PI, box: true },
   // Darleen's Room — king against the north wall (face 4.4), dresser east (face 5.9).
   { file: 'bed-king', lc: [0.062, 0.068], w: 1.98, d: 2.18, h: 1.10, cx: 2.0, cz: 3.31, yaw: Math.PI, box: true },
   { file: 'nightstand', lc: [0.0175, 0.014], w: 0.59, d: 0.48, h: 0.61, cx: 0.72, cz: 4.16, yaw: Math.PI, box: true },
@@ -273,11 +277,88 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: 2.5, cz: 2.5, yaw: 0, box: false, y: 5.0 },
   { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3.5, cz: -2.5, yaw: 0, box: false, y: 5.0 },
   { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: -3.5, cz: 2.5, yaw: 0, box: false, y: 5.0 },
-  // Smoke detectors (origin at the ceiling, body below).
-  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0, cz: -0.5, yaw: 0, box: false, y: 5.0 },
+  // The kitchen gets a fan too (Adam, 2026-11-14).
+  { file: 'ceiling-fan', lc: [0.00275, 0], w: 1.3, d: 1.3, h: 0, cx: 3.5, cz: -2, yaw: 0, box: false, y: 2.5 },
+  // Smoke detectors sit ABOVE DOORWAYS (Adam, 2026-11-14):
+  // upstairs hall over the bathroom door, main hall by the
+  // stairs, kitchen over the back door, basement by its door.
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -1.25, yaw: 0, box: false, y: 5.0 },
   { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -0.5, yaw: 0, box: false, y: 2.5 },
-  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 4, cz: -3, yaw: 0, box: false, y: 2.5 },
+  { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 3.5, cz: -4.05, yaw: 0, box: false, y: 2.5 },
   { file: 'smoke-detector', lc: [0, 0], w: 0.18, d: 0.18, h: 0, cx: 0.5, cz: -2, yaw: 0, box: false, y: 0.0 },
+  // Range hood over the range, back to the south wall (Models
+  // Pack A, mounted space: underside at local 1.45).
+  { file: 'range-hood', lc: [0, 0], w: 0.8, d: 0.55, h: 0, cx: 4.37, cz: -4.42, yaw: 0, box: false, y: 0.1 },
+  // Bedside lamps, one per bedroom (Adam, 2026-11-14): the
+  // master lamp takes the far nightstand (the phone keeps its
+  // own), the girls' lamps their nightstands. Tops at 3.21.
+  { file: 'table-lamp', lc: [0, 0], w: 0.21, d: 0.21, h: 0.45, cx: 3.28, cz: 4.16, yaw: 0, box: false, y: 3.21 },
+  { file: 'table-lamp', lc: [0, 0], w: 0.21, d: 0.21, h: 0.45, cx: -2.8, cz: -4.16, yaw: 0, box: false, y: 3.21 },
+  { file: 'table-lamp', lc: [0, 0], w: 0.21, d: 0.21, h: 0.45, cx: -5.66, cz: 2.85, yaw: 0, box: false, y: 3.21 },
+  // Curtains on all four windows (Models Pack A, mounted
+  // space; window markers measured from Adam's model: all
+  // 2.0 x 1.0, sill 1.1, top 2.1, main floor).
+  { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: -5.84, cz: -2, yaw: Math.PI / 2, box: false, y: 0.1 },
+  { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: -5.84, cz: 2.5, yaw: Math.PI / 2, box: false, y: 0.1 },
+  { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: -1.5, cz: 4.34, yaw: Math.PI, box: false, y: 0.1 },
+  { file: 'curtains', lc: [0, 0], w: 2.36, d: 0.11, h: 0, cx: 5.84, cz: 2.5, yaw: -Math.PI / 2, box: false, y: 0.1 },
+  // ---- The clutter pass (Models Pack B, docs/LIVED-IN.md):
+  // Adam's law — any flat surface is an insult and gets filled.
+  // Coffee table between the 3-seat couch and the TV, with the
+  // remote and a book stack on it.
+  { file: 'coffee-table', lc: [0, 0.0172], w: 1.1, d: 0.55, h: 0.42, cx: -4.3, cz: 2.55, yaw: Math.PI / 2, box: true, y: 0.1 },
+  { file: 'book-stack', lc: [0, 0], w: 0.26, d: 0.2, h: 0.14, cx: -4.3, cz: 2.25, yaw: 0.4, box: false, y: 0.52 },
+  { file: 'tv-remote', lc: [0, 0], w: 0.06, d: 0.17, h: 0.02, cx: -4.22, cz: 2.85, yaw: -0.3, box: false, y: 0.52 },
+  // Two comfy chairs in the little space right of the stairs
+  // as you come down (Adam) — against the wall on the north
+  // side of the hall mouth, facing into the room.
+  { file: 'armchair', lc: [0, 0.0275], w: 0.95, d: 0.88, h: 0.95, cx: 0.85, cz: 1.1, yaw: 0, box: true, y: 0.1 },
+  { file: 'armchair', lc: [0, 0.0275], w: 0.95, d: 0.88, h: 0.95, cx: 1.95, cz: 1.1, yaw: 0, box: true, y: 0.1 },
+  // The dining table: the annoyingly big plant dead centre,
+  // fruit bowl within reach.
+  { file: 'table-plant', lc: [0, 0], w: 0.46, d: 0.48, h: 0.61, cx: -3.6, cz: -2.25, yaw: 0, box: false, y: 0.86 },
+  { file: 'fruit-bowl', lc: [0, 0], w: 0.25, d: 0.25, h: 0.14, cx: -4.4, cz: -1.8, yaw: 0, box: false, y: 0.86 },
+  // Hanging plants at three windows (origin at the hook).
+  { file: 'hanging-plant', lc: [0, 0], w: 0.27, d: 0.24, h: 0, cx: -5.7, cz: -2, yaw: 0, box: false, y: 2.32 },
+  { file: 'hanging-plant', lc: [0, 0], w: 0.27, d: 0.24, h: 0, cx: -1.5, cz: 4.2, yaw: 0, box: false, y: 2.32 },
+  { file: 'hanging-plant', lc: [0, 0], w: 0.27, d: 0.24, h: 0, cx: 5.7, cz: 2.5, yaw: 0, box: false, y: 2.32 },
+  // Kitchen surfaces and the back-door corner: mail on the
+  // counter, mugs by the sink, coats + shoes + dog bowls at
+  // the door, a trash can by the run.
+  { file: 'mail-pile', lc: [0, 0], w: 0.25, d: 0.15, h: 0.02, cx: 2.3, cz: -4.05, yaw: 0.2, box: false, y: 1.0 },
+  { file: 'mugs', lc: [0, 0], w: 0.25, d: 0.08, h: 0.09, cx: 5.5, cz: -2.55, yaw: 0.3, box: false, y: 1.01 },
+  // (The kitchen's whole south wall is counter, so the coats
+  // hang in the hall on the spine wall, by the stairs; the dog
+  // bowls sit just inside the back door, clear of the range.)
+  { file: 'coat-hooks', lc: [0, 0], w: 1.07, d: 0.11, h: 0, cx: 0.14, cz: -1.2, yaw: Math.PI / 2, box: false, y: 0.1 },
+  { file: 'shoes', lc: [0, 0], w: 0.25, d: 0.32, h: 0.12, cx: 0.42, cz: -1.2, yaw: Math.PI / 2 + 0.4, box: false, y: 0.1 },
+  { file: 'dog-bowls', lc: [0, 0], w: 0.56, d: 0.34, h: 0.06, cx: 3.5, cz: -3.5, yaw: 0, box: false, y: 0.1 },
+  { file: 'trash-can', lc: [0, 0], w: 0.26, d: 0.26, h: 0.31, cx: 1.35, cz: -3.45, yaw: 0, box: false, y: 0.1 },
+  // Bathroom: toiletries on the vanity, a can beside it, a
+  // clothes heap on the floor.
+  { file: 'toiletries', lc: [0, 0], w: 0.19, d: 0.1, h: 0.22, cx: 0.33, cz: -4.28, yaw: 0, box: false, y: 3.5 },
+  { file: 'trash-can', lc: [0, 0], w: 0.26, d: 0.26, h: 0.31, cx: 1.38, cz: -4.1, yaw: 0, box: false, y: 2.6 },
+  { file: 'clothes-pile-a', lc: [0, 0], w: 0.55, d: 0.44, h: 0.11, cx: 2.3, cz: -3.55, yaw: 0.7, box: false, y: 2.6 },
+  // Bedrooms: clothes heaps on the floors, posters over the
+  // headboards, a book stack on the master dresser.
+  { file: 'clothes-pile-b', lc: [0, 0], w: 0.55, d: 0.44, h: 0.11, cx: 4.35, cz: 2.85, yaw: 0.2, box: false, y: 2.6 },
+  { file: 'clothes-pile-c', lc: [0, 0], w: 0.55, d: 0.44, h: 0.11, cx: -2.05, cz: -3.3, yaw: 1.1, box: false, y: 2.6 },
+  { file: 'clothes-pile-a', lc: [0, 0], w: 0.55, d: 0.44, h: 0.11, cx: -3.25, cz: 2.95, yaw: 0.5, box: false, y: 2.6 },
+  { file: 'poster-bedroom-1', lc: [0, 0], w: 0.66, d: 0.01, h: 0, cx: -3.89, cz: -4.38, yaw: 0, box: false, y: 4.35 },
+  { file: 'poster-bedroom-2', lc: [0, 0], w: 0.66, d: 0.01, h: 0, cx: -5.88, cz: 1.7, yaw: Math.PI / 2, box: false, y: 4.35 },
+  { file: 'book-stack', lc: [0, 0], w: 0.26, d: 0.2, h: 0.14, cx: 5.64, cz: 2.05, yaw: -0.5, box: false, y: 3.5 },
+  // Wall life: a frame row over the 2-seat couch, one over
+  // the master dresser (centre origins, backs to the wall).
+  { file: 'picture-frame-1', lc: [0, 0], w: 0.34, d: 0.02, h: 0, cx: -1.95, cz: 4.38, yaw: Math.PI, box: false, y: 1.95 },
+  { file: 'picture-frame-2', lc: [0, 0], w: 0.26, d: 0.02, h: 0, cx: -1.38, cz: 4.38, yaw: Math.PI, box: false, y: 1.88 },
+  { file: 'picture-frame-3', lc: [0, 0], w: 0.19, d: 0.02, h: 0, cx: -0.95, cz: 4.38, yaw: Math.PI, box: false, y: 1.98 },
+  { file: 'picture-frame-2', lc: [0, 0], w: 0.26, d: 0.02, h: 0, cx: 5.88, cz: 2.2, yaw: -Math.PI / 2, box: false, y: 4.3 },
+  // The curio gets its contents — the good china nobody may
+  // use — in the cabinet's own local frame.
+  { file: 'curio-contents', lc: [0, 0.0119], w: 0.62, d: 0.16, h: 0, cx: -0.2, cz: -2.95, yaw: -Math.PI / 2, box: false, y: 0.1 },
+  // The laundry corner in the basement: a full basket stands
+  // where the washer and dryer will go (Adam's word pending).
+  { file: 'laundry-basket', lc: [0.0172, 0.0125], w: 0.57, d: 0.41, h: 0.55, cx: 1.45, cz: 3.35, yaw: 0.15, box: true, y: -2.4 },
   // Kitchen appliances. NOTE: the south run has no range gap —
   // the range sets into the run (its body swallows a counter
   // stretch; fronts and cooktop sit flush/proud as a real range
@@ -306,6 +387,16 @@ const FURNITURE: FurnitureSpec[] = [
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.21, cz: 3.55, yaw: -Math.PI / 2, box: false, y: -1.2 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.61, yaw: 0, box: false, y: 1.3 },
   { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -2.85, cz: 0.49, yaw: Math.PI, box: false, y: 1.3 },
+  // Batch 2 (night lighting): the plates the circuits were
+  // missing — kitchen, Bedroom 1, and the hall light's pair at
+  // either end of the stairs (Adam), plus the basement-stair
+  // plate at the top of the basement flight, wired to the
+  // basement circuit like a real 3-way.
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 3.0, cz: -1.76, yaw: Math.PI, box: false, y: 1.3 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: -1.18, cz: -1.55, yaw: -Math.PI / 2, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 0.16, cz: -0.55, yaw: Math.PI / 2, box: false, y: 1.3 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 0.2, cz: -1.59, yaw: 0, box: false, y: 3.8 },
+  { file: 'switch-plate', lc: [0, 0.00075], w: 0.075, d: 0.02, h: 0, cx: 1.94, cz: -1.05, yaw: -Math.PI / 2, box: false, y: 1.3, grp: 'basement' },
   // Outlets (0.3 m up; kitchen + bathroom at counter height).
   { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 3.6, cz: 4.39, yaw: Math.PI, box: false, y: 2.9 },
   { file: 'outlet-plate', lc: [0, 0.00045], w: 0.075, d: 0.015, h: 0, cx: 5.89, cz: 1.2, yaw: -Math.PI / 2, box: false, y: 2.9 },
@@ -347,15 +438,28 @@ const LOOK_NAMES: Record<string, string> = {
   range: 'Range', fridge: 'Fridge', furnace: 'Furnace', 'water-heater': 'Water Heater',
   'towel-rail': 'Towel Rail', thermostat: 'Thermostat',
   'switch-plate': 'Light Switch', 'outlet-plate': 'Outlet',
+  'range-hood': 'Range Hood', 'table-lamp': 'Lamp', curtains: 'Curtains',
+  'coffee-table': 'Coffee Table', armchair: 'Armchair', 'table-plant': 'Potted Plant',
+  'hanging-plant': 'Hanging Plant', 'fruit-bowl': 'Fruit Bowl', 'book-stack': 'Books',
+  'tv-remote': 'TV Remote', 'mail-pile': 'Mail', mugs: 'Mugs', shoes: 'Shoes',
+  'coat-hooks': 'Coats', 'dog-bowls': 'Dog Bowls', 'trash-can': 'Trash Can',
+  toiletries: 'Toiletries', 'clothes-pile-a': 'Clothes Pile', 'clothes-pile-b': 'Clothes Pile',
+  'clothes-pile-c': 'Clothes Pile', 'laundry-basket': 'Laundry Basket',
+  'picture-frame-1': 'Picture Frame', 'picture-frame-2': 'Picture Frame', 'picture-frame-3': 'Picture Frame',
+  'poster-bedroom-1': 'Poster', 'poster-bedroom-2': 'Poster', 'curio-contents': 'The Good China',
 };
 // Vertical spans for pieces whose spec height is 0 or whose bulk
 // hangs/floats off the placement height: [below, above] the spec y.
 const LOOK_Y: Record<string, [number, number]> = {
-  'ceiling-fan': [-0.42, 0.02], 'smoke-detector': [-0.12, 0.02],
+  'ceiling-fan': [-0.66, 0.02], 'smoke-detector': [-0.12, 0.02],
   mirror: [1.02, 2.14], 'towel-rail': [0.7, 1.48],
   'kitchen-wall-south': [1.75, 2.45], 'kitchen-wall-east': [1.75, 2.45],
   'switch-plate': [-0.09, 0.09], 'outlet-plate': [-0.09, 0.09], thermostat: [-0.1, 0.1],
   shovel: [0, 1.35],
+  'range-hood': [1.4, 2.55], curtains: [0.9, 2.3],
+  'hanging-plant': [-0.72, 0.02], 'coat-hooks': [0.8, 1.7], 'curio-contents': [0.1, 1.7],
+  'picture-frame-1': [-0.21, 0.21], 'picture-frame-2': [-0.16, 0.16], 'picture-frame-3': [-0.12, 0.12],
+  'poster-bedroom-1': [-0.43, 0.5], 'poster-bedroom-2': [-0.43, 0.5],
 };
 const DOOR_NAMES: Record<string, string> = {
   clarissa: 'Bedroom 1 Door', breanna: 'Bedroom 2 Door', bathroom: 'Bathroom Door',
@@ -367,8 +471,37 @@ interface LookTarget {
   name: string;
   minX: number; maxX: number; minZ: number; maxZ: number; minY: number; maxY: number;
   file?: string;
+  fx?: string; // switchable-fixture id (batch 2 night lighting)
   gone?: boolean; // held in hand — not a world target right now
 }
+
+// Night-lighting fixtures (batch 2): a switchable light source
+// or a plate that switches a whole room circuit. Fans carry a
+// spinner for the F cord (the motor); plates carry no light of
+// their own. All lights start OFF — the adventure is at night
+// and the player turns them on (Adam, 2026-11-14).
+interface Fixture {
+  id: string;
+  kind: 'fan' | 'lamp' | 'hood' | 'plate' | 'fixed';
+  group: string;
+  lights: THREE.PointLight[];
+  level: number; // intensity when on
+  glowMats: THREE.MeshStandardMaterial[];
+  on: boolean;
+  spinner?: THREE.Group;
+  spinOn?: boolean;
+}
+
+const SWITCHABLE = new Set(['ceiling-fan', 'table-lamp', 'floor-lamp', 'range-hood', 'switch-plate']);
+const fixtureId = (spec: FurnitureSpec): string => `${spec.file}@${spec.cx},${spec.cz}`;
+
+const GROUP_OF_ZONE: Record<string, string> = {
+  Kitchen: 'kitchen', 'Dining Room': 'dining', 'Living Room': 'living',
+  'Master Bedroom': 'master', 'Bedroom 1': 'bed1', 'Bedroom 2': 'bed2',
+  Bathroom: 'bath', Hall: 'hall', 'Hall / Entry': 'hall', Stairs: 'hall',
+  'Hall Closet': 'hall', Basement: 'basement', 'Basement Room': 'basement',
+  'East Room': 'east',
+};
 
 // What a hand can hold (Adam, 2026-11-13: E interacts, and an
 // equippable item gets picked up). The phone is deliberately
@@ -406,10 +539,11 @@ for (const spec of FURNITURE) {
   if (!name) continue;
   const fy = spec.y ?? FURN_Y;
   const ys: [number, number] = LOOK_Y[spec.file] ?? [0, spec.h > 0 ? spec.h : 0.3];
+  const fx = SWITCHABLE.has(spec.file) ? fixtureId(spec) : undefined;
   if (spec.boxes) {
     for (const [minX, maxX, minZ, maxZ] of spec.boxes) {
       LOOK_TARGETS.push({
-        name, file: spec.file, minX: minX - 0.02, maxX: maxX + 0.02, minZ: minZ - 0.02, maxZ: maxZ + 0.02,
+        name, file: spec.file, fx, minX: minX - 0.02, maxX: maxX + 0.02, minZ: minZ - 0.02, maxZ: maxZ + 0.02,
         minY: fy + ys[0], maxY: fy + ys[1],
       });
     }
@@ -419,7 +553,7 @@ for (const spec of FURNITURE) {
   const hw = (swap ? spec.d : spec.w) / 2 + 0.03;
   const hd = (swap ? spec.w : spec.d) / 2 + 0.03;
   LOOK_TARGETS.push({
-    name, file: spec.file,
+    name, file: spec.file, fx,
     minX: spec.cx - hw, maxX: spec.cx + hw, minZ: spec.cz - hd, maxZ: spec.cz + hd,
     minY: fy + ys[0], maxY: fy + ys[1],
   });
@@ -655,34 +789,57 @@ export default function ModelWalk() {
     renderer.domElement.style.touchAction = 'none';
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x2a241d, 0.95));
-    const moon = new THREE.DirectionalLight(0xafc4ff, 0.7);
+    // NIGHT (Adam, 2026-11-14): the adventure takes place at
+    // night. The old always-on wash is gone — what remains is a
+    // faint cool ambient and streetlight spill at the windows,
+    // enough to navigate by, not enough to feel safe. Every
+    // real light in the house is a fixture the player switches
+    // on (registered below by the furniture loader and the
+    // code-built props); they all start OFF.
+    scene.add(new THREE.HemisphereLight(0xbfd0e8, 0x141210, 0.16));
+    const moon = new THREE.DirectionalLight(0xafc4ff, 0.16);
     moon.position.set(-12, 20, 10);
     scene.add(moon);
     for (const [x, y, z] of [
-      [-3, 2.3, 0], [3.5, 2.3, -3], [3.2, 2.2, -0.5], // main floor + its shaft top
-      [0.7, 4.8, 2], [-3.5, 4.8, 0], [3, 4.8, -3], // upstairs
+      [-5.55, 1.6, -2], [-5.55, 1.6, 2.5], // Window1 + Window2 (west)
+      [-1.5, 1.6, 4.05], // Window3 (north)
+      [5.55, 1.6, 2.5], // Window4 (east)
     ] as const) {
-      const p = new THREE.PointLight(0xffd9a0, 5.5, 11, 1.8);
+      const p = new THREE.PointLight(0x8fb4d8, 0.55, 4.5, 1.8);
       p.position.set(x, y, z);
       scene.add(p);
     }
-    // Basement, brighter and with its own shaft light: the sealed
-    // stair enclosure admitted almost no light (the flights read
-    // near-black) and Adam could not see the basement floor at all
-    // (playtest, 2026-11-12).
-    for (const [x, y, z] of [
-      [0, -0.4, 0], [-3.5, -0.4, 2.5], // hall side + basement room
-      [3.2, -0.5, -0.5], // inside the stair shaft, over the landing
-      [5.0, 0.2, -0.5], // over the basement landing itself — the
-      // shaft still read as a black pit from the main floor
-      // (playtest, 2026-11-13)
-      [3.5, -0.5, -2.5], // open basement, east side
-    ] as const) {
-      const p = new THREE.PointLight(0xffd9a0, 9, 13, 1.8);
-      p.position.set(x, y, z);
-      scene.add(p);
-    }
+    const fixtures = new Map<string, Fixture>();
+    const fixtureGroups = new Map<string, Fixture[]>();
+    const registerFixture = (f: Fixture) => {
+      fixtures.set(f.id, f);
+      if (f.kind !== 'plate') {
+        const arr = fixtureGroups.get(f.group) ?? [];
+        arr.push(f);
+        fixtureGroups.set(f.group, arr);
+      }
+    };
+    const setFixtureOn = (f: Fixture, on: boolean) => {
+      f.on = on;
+      for (const l of f.lights) {
+        l.intensity = on ? f.level : 0;
+        l.visible = on;
+      }
+      for (const m of f.glowMats) m.emissiveIntensity = on ? 1.4 : 0;
+    };
+    const toggleFixture = (f: Fixture) => {
+      character.playOnce('Use / press');
+      if (f.kind === 'plate') {
+        // A wall plate works its whole room circuit: if anything
+        // on the circuit is off, the plate turns it all on,
+        // otherwise all off — the way a person uses a switch.
+        const group = fixtureGroups.get(f.group) ?? [];
+        const turnOn = group.some((g) => !g.on);
+        for (const g of group) setFixtureOn(g, turnOn);
+        return;
+      }
+      setFixtureOn(f, !f.on);
+    };
 
     // Floor-transparency registry (third person): every house
     // mesh, furniture group and door leaf is filed under its
@@ -837,7 +994,7 @@ export default function ModelWalk() {
     type Piece = { spec: (typeof FURNITURE)[number]; group: THREE.Group; state: 'placed' | 'held' | 'dropped' };
     const pieces = new Map<string, Piece>();
     let heldFile: string | null = null;
-    const lookRef = { file: null as string | null };
+    const lookRef = { file: null as string | null, fixture: null as Fixture | null };
     let handBone: THREE.Object3D | null = null;
     const snapPos = new THREE.Vector3();
     const snapQuat = new THREE.Quaternion();
@@ -976,11 +1133,16 @@ export default function ModelWalk() {
     lockActionRef.current = toggleLock;
 
     // E, resolved in order: the hand item he is looking at,
-    // then a door in lock range, then putting down what he holds.
+    // then a light fixture or switch plate, then a door in lock
+    // range, then putting down what he holds.
     const interact = () => {
       const f = lookRef.file;
       if (f && PICKUPABLE.has(f) && f !== heldFile) {
         pickupPiece(f);
+        return;
+      }
+      if (lookRef.fixture) {
+        toggleFixture(lookRef.fixture);
         return;
       }
       if (toggleLock()) return;
@@ -1087,8 +1249,18 @@ export default function ModelWalk() {
         for (const b of banded) b.obj.visible = visKey === -1 || b.band <= pBand;
       }
 
-      character.group.visible = viewRef.current === 'tp';
+      // The body renders in BOTH views (Adam, 2026-11-14).
+      // In FP the camera rides 0.16 ahead of the eye point
+      // (below), which puts the whole head behind the near
+      // plane — he sees his torso, arms and hands looking
+      // down, and the bathroom mirror shows the whole man.
+      character.group.visible = true;
       character.update(dt, speed);
+      // Ceiling fans whose motor cord was pulled spin their
+      // blades (the spinner group built at load).
+      for (const f of fixtures.values()) {
+        if (f.spinner && f.spinOn) f.spinner.rotation.y -= dt * 7.5;
+      }
 
       // A held piece rides him: in TP it sits in his right
       // hand — position from the hand bone, facing from his
@@ -1157,7 +1329,15 @@ export default function ModelWalk() {
         cz = tz + (cz - tz) * t;
         camera.position.set(cx, cy, cz);
       } else {
-        camera.position.set(input.pos.x, input.ground + EYE, input.pos.z);
+        // FP: the camera rides 0.16 ahead of the eye point
+        // along the look vector, so the head (radius ~0.13)
+        // stays behind the near plane while the body renders.
+        const cp = Math.cos(input.pitch);
+        camera.position.set(
+          input.pos.x - Math.sin(input.yaw) * cp * 0.16,
+          input.ground + EYE + Math.sin(input.pitch) * 0.16,
+          input.pos.z - Math.cos(input.yaw) * cp * 0.16,
+        );
       }
 
       // TP wall fade: whatever house geometry sits between the
@@ -1254,6 +1434,7 @@ export default function ModelWalk() {
         // only if it is a hand item within reach of HIM (his
         // chest), not merely of the camera.
         lookRef.file = null;
+        lookRef.fixture = null;
         if (foundTg?.file && PICKUPABLE.has(foundTg.file)) {
           const cx = (foundTg.minX + foundTg.maxX) / 2;
           const cy = (foundTg.minY + foundTg.maxY) / 2;
@@ -1261,9 +1442,24 @@ export default function ModelWalk() {
           const d = Math.hypot(cx - input.pos.x, cy - (input.ground + 1.2), cz - input.pos.z);
           if (d <= 2.4) lookRef.file = foundTg.file;
         }
+        if (!lookRef.file && foundTg?.fx) {
+          const fxObj = fixtures.get(foundTg.fx);
+          if (fxObj) {
+            const cx = (foundTg.minX + foundTg.maxX) / 2;
+            const cy = (foundTg.minY + foundTg.maxY) / 2;
+            const cz = (foundTg.minZ + foundTg.maxZ) / 2;
+            const d = Math.hypot(cx - input.pos.x, cy - (input.ground + 1.2), cz - input.pos.z);
+            if (d <= 2.6) lookRef.fixture = fxObj;
+          }
+        }
         let iNote: string | null = null;
         if (lookRef.file && lookRef.file !== heldFile) {
           iNote = `${heldFile ? 'Swap for' : 'Pick up'} ${LOOK_NAMES[lookRef.file]}`;
+        } else if (lookRef.fixture) {
+          const fxObj = lookRef.fixture;
+          iNote = fxObj.kind === 'fan'
+            ? 'Light cord · F — Fan cord'
+            : fxObj.kind === 'plate' ? 'Lights' : 'Light';
         } else if (heldFile && !note) {
           iNote = `Put down ${LOOK_NAMES[heldFile]}`;
         }
@@ -1289,6 +1485,17 @@ export default function ModelWalk() {
       if (e.code === 'KeyE') interact();
     };
     window.addEventListener('keydown', onLockKey);
+    // F works a fan's second pull cord (the motor) while the
+    // player is looking at the fan.
+    const onFanKey = (e: KeyboardEvent) => {
+      if (e.code !== 'KeyF') return;
+      const fxObj = lookRef.fixture;
+      if (fxObj && fxObj.kind === 'fan') {
+        character.playOnce('Use / press');
+        fxObj.spinOn = !fxObj.spinOn;
+      }
+    };
+    window.addEventListener('keydown', onFanKey);
     const onViewKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyV') viewToggleRef.current?.();
     };
@@ -1384,6 +1591,15 @@ export default function ModelWalk() {
                   const mat = mesh.material as THREE.Material | THREE.Material[];
                   (Array.isArray(mat) ? mat : [mat]).forEach((m) => {
                     (m as THREE.MeshStandardMaterial).side = THREE.DoubleSide;
+                    // The curio's door glass ships opaque (a flat
+                    // screen_glass panel) — the good china inside
+                    // would never be seen. Make it real glass.
+                    if (spec.file === 'curio-cabinet' && m.name === 'screen_glass') {
+                      const sm = m as THREE.MeshStandardMaterial;
+                      sm.transparent = true;
+                      sm.opacity = 0.25;
+                      sm.depthWrite = false;
+                    }
                   });
                 }
               });
@@ -1398,6 +1614,51 @@ export default function ModelWalk() {
               group.position.set(spec.cx, fy, spec.cz);
               scene.add(group);
               banded.push({ obj: group, band: bandOf(fy) });
+              // Batch 2: switchable pieces register their light.
+              if (SWITCHABLE.has(spec.file)) {
+                const id = fixtureId(spec);
+                const grp = spec.grp ?? GROUP_OF_ZONE[zoneAt(spec.cx, spec.cz,
+                  spec.file === 'ceiling-fan' ? fy - 2.4 : spec.file === 'switch-plate' ? fy - 1.2 : fy)] ?? 'hall';
+                if (spec.file === 'switch-plate') {
+                  registerFixture({ id, kind: 'plate', group: grp, lights: [], level: 0, glowMats: [], on: false });
+                } else if (spec.file === 'ceiling-fan') {
+                  const light = new THREE.PointLight(0xffd9a0, 0, 9, 1.8);
+                  light.visible = false;
+                  light.position.set(0, -0.52, 0);
+                  group.add(light);
+                  const glowMats: THREE.MeshStandardMaterial[] = [];
+                  piece.scene.traverse((o) => {
+                    if (o.name === 'light_dome' || o.name === 'light_dome_x') {
+                      const mm = (o as THREE.Mesh).material as THREE.MeshStandardMaterial;
+                      mm.emissive = new THREE.Color(0xffca7a);
+                      mm.emissiveIntensity = 0;
+                      glowMats.push(mm);
+                    }
+                  });
+                  // The blades ride a spinner around the hub axis;
+                  // the motor, dome and cords stay put.
+                  const spinner = new THREE.Group();
+                  piece.scene.add(spinner);
+                  for (const bn of ['blade_0', 'blade_1', 'blade_2', 'blade_3', 'blade_4']) {
+                    const b = piece.scene.getObjectByName(bn);
+                    if (b) spinner.attach(b);
+                  }
+                  registerFixture({ id, kind: 'fan', group: grp, lights: [light], level: 6, glowMats, on: false, spinner, spinOn: false });
+                } else if (spec.file === 'table-lamp' || spec.file === 'floor-lamp') {
+                  const isFloor = spec.file === 'floor-lamp';
+                  const light = new THREE.PointLight(0xffc98a, 0, isFloor ? 6 : 5, 1.8);
+                  light.visible = false;
+                  light.position.set(0, isFloor ? 1.5 : 0.34, 0);
+                  group.add(light);
+                  registerFixture({ id, kind: 'lamp', group: grp, lights: [light], level: isFloor ? 3 : 2.4, glowMats: [], on: false });
+                } else if (spec.file === 'range-hood') {
+                  const light = new THREE.PointLight(0xffe6b8, 0, 3.2, 1.8);
+                  light.visible = false;
+                  light.position.set(0, 1.35, 0.3);
+                  group.add(light);
+                  registerFixture({ id, kind: 'hood', group: grp, lights: [light], level: 2.6, glowMats: [], on: false });
+                }
+              }
               if (PICKUPABLE.has(spec.file)) {
                 pieces.set(spec.file, { spec, group, state: 'placed' });
               }
@@ -1420,6 +1681,70 @@ export default function ModelWalk() {
             }
           }),
         );
+        // Code-built fixtures (batch 2): the hall dome, the
+        // bathroom light bar and the basement bulbs have no
+        // Models piece (yet) — simple props whose glow material
+        // and real PointLight switch together. Their plates are
+        // ordinary switch-plate specs on the same circuits.
+        const buildPropFixture = (
+          id: string, group: string, band: number, level: number, dist: number,
+          lightPos: [number, number, number], build: (glow: THREE.MeshStandardMaterial) => THREE.Object3D,
+        ) => {
+          const glow = new THREE.MeshStandardMaterial({
+            color: 0xf5ead0, emissive: new THREE.Color(0xffca7a), emissiveIntensity: 0,
+          });
+          const obj = build(glow);
+          scene.add(obj);
+          banded.push({ obj, band });
+          const light = new THREE.PointLight(0xffd9a0, 0, dist, 1.8);
+          light.visible = false;
+          light.position.set(...lightPos);
+          scene.add(light);
+          registerFixture({ id, kind: 'fixed', group, lights: [light], level, glowMats: [glow], on: false });
+        };
+        buildPropFixture('hall-dome', 'hall', 1, 5, 8, [0.5, 2.15, -0.5], (glow) => {
+          const g = new THREE.Group();
+          const cap = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.17, 0.19, 0.05, 20),
+            new THREE.MeshStandardMaterial({ color: 0x3a3f45 }),
+          );
+          cap.position.set(0.5, 2.47, -0.5);
+          const dome = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), glow);
+          dome.rotation.x = Math.PI;
+          dome.position.set(0.5, 2.45, -0.5);
+          g.add(cap, dome);
+          return g;
+        });
+        buildPropFixture('bath-bar', 'bath', 2, 4, 5.5, [0.62, 4.5, -3.9], (glow) => {
+          const g = new THREE.Group();
+          const bar = new THREE.Mesh(
+            new THREE.BoxGeometry(0.7, 0.05, 0.06),
+            new THREE.MeshStandardMaterial({ color: 0x3a3f45 }),
+          );
+          bar.position.set(0.62, 4.74, -4.32);
+          g.add(bar);
+          for (const bx of [0.42, 0.62, 0.82]) {
+            const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.028, 12, 8), glow);
+            bulb.position.set(bx, 4.7, -4.3);
+            g.add(bulb);
+          }
+          return g;
+        });
+        for (const [bx, bz, id] of [[-0.5, 1.2, 'basement-bulb-a'], [-3.5, 2.5, 'basement-bulb-b']] as const) {
+          buildPropFixture(id, 'basement', 0, 7, 10, [bx, -0.35, bz], (glow) => {
+            const g = new THREE.Group();
+            const cord = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.008, 0.008, 0.3, 6),
+              new THREE.MeshStandardMaterial({ color: 0x1c1c1e }),
+            );
+            cord.position.set(bx, -0.15, bz);
+            const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), glow);
+            bulb.position.set(bx, -0.35, bz);
+            g.add(cord, bulb);
+            return g;
+          });
+        }
+
         // A real mirror (Adam asked, 2026-11-13): a planar
         // reflector laid over the bathroom mirror's glass. It
         // re-renders the scene from the mirrored camera, but
@@ -1456,6 +1781,7 @@ export default function ModelWalk() {
       window.removeEventListener('keydown', kd);
       window.removeEventListener('keyup', ku);
       window.removeEventListener('keydown', onLockKey);
+      window.removeEventListener('keydown', onFanKey);
       window.removeEventListener('keydown', onViewKey);
       document.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.removeEventListener('click', onCanvasClick);
